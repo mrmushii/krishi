@@ -110,7 +110,7 @@ export default function QuestionDetail() {
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto" />
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto" />
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function QuestionDetail() {
             <div className="flex-shrink-0 text-center">
               <button
                 onClick={() => handleVote('question', question.id, 'up')}
-                className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
+                className="block w-10 h-10 text-gray-400 hover:text-deshbazar-primary transition-colors"
               >
                 <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" />
@@ -160,7 +160,7 @@ export default function QuestionDetail() {
               <div className="text-2xl font-bold text-gray-700 my-2">{questionVotes}</div>
               <button
                 onClick={() => handleVote('question', question.id, 'down')}
-                className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
+                className="block w-10 h-10 text-gray-400 hover:text-deshbazar-primary transition-colors"
               >
                 <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
@@ -227,7 +227,7 @@ export default function QuestionDetail() {
                     <div className="flex-shrink-0 text-center">
                       <button
                         onClick={() => handleVote('answer', answer.id, 'up')}
-                        className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
+                        className="block w-10 h-10 text-gray-400 hover:text-deshbazar-primary transition-colors"
                       >
                         <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" />
@@ -236,7 +236,7 @@ export default function QuestionDetail() {
                       <div className="text-xl font-bold text-gray-700 my-2">{answer.votes || 0}</div>
                       <button
                         onClick={() => handleVote('answer', answer.id, 'down')}
-                        className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
+                        className="block w-10 h-10 text-gray-400 hover:text-deshbazar-primary transition-colors"
                       >
                         <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
@@ -293,7 +293,7 @@ export default function QuestionDetail() {
                 onChange={(e) => setAnswerContent(e.target.value)}
                 placeholder="Write your answer here..."
                 rows="6"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange mb-4"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary mb-4"
                 required
               />
               <Button type="submit" disabled={submitting}>

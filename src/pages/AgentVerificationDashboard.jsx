@@ -84,7 +84,7 @@ export default function AgentVerificationDashboard() {
             onClick={() => setActiveTab('farmers')}
             className={`px-6 py-3 rounded-lg font-medium transition-colors ${
               activeTab === 'farmers'
-                ? 'bg-farmlink-orange text-white'
+                ? 'bg-deshbazar-primary text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             }`}
           >
@@ -94,7 +94,7 @@ export default function AgentVerificationDashboard() {
             onClick={() => setActiveTab('buyers')}
             className={`px-6 py-3 rounded-lg font-medium transition-colors ${
               activeTab === 'buyers'
-                ? 'bg-farmlink-orange text-white'
+                ? 'bg-deshbazar-primary text-white'
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             }`}
           >

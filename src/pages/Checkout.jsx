@@ -38,13 +38,24 @@ export default function Checkout() {
         const uniqueProductIds = [...new Set(items.map(({ productId }) => productId))]
         const productEntries = await Promise.all(
           uniqueProductIds.map(async (productId) => {
-            const snapshot = await getDoc(doc(db, 'products', productId))
-            return snapshot.exists() ? [productId, { id: snapshot.id, ...snapshot.data() }] : null
+            try {
+              const snapshot = await getDoc(doc(db, 'products', productId))
+              return snapshot.exists() ? [productId, { id: snapshot.id, ...snapshot.data() }] : null
+            } catch (err) {
+              console.log(`Error loading product ${productId}:`, err.message)
+              return null
+            }
           })
         )
         setProducts(Object.fromEntries(productEntries.filter(Boolean)))
       } catch (error) {
         console.error('Error loading cart:', error)
+        // Set empty state on error
+        setCartItems([])
+        setProducts({})
+        if (error.code === 'permission-denied') {
+          alert('Permission error: Please check Firebase rules for cart collection')
+        }
       } finally {
         setLoading(false)
       }
@@ -115,7 +126,7 @@ export default function Checkout() {
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto"></div>
           </div>
         </div>
       </div>
@@ -143,7 +154,7 @@ export default function Checkout() {
                   onChange={(e) =>
                     setPaymentData((prev) => ({ ...prev, method: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
                 >
                   <option value="bkash">bKash</option>
                   <option value="nagad">Nagad</option>
@@ -223,7 +234,7 @@ export default function Checkout() {
               <div className="border-t pt-4 mb-4">
                 <div className="flex justify-between text-xl font-bold">
                   <span>Total</span>
-                  <span className="text-farmlink-orange">{formatPrice(total)}</span>
+                  <span className="text-deshbazar-primary">{formatPrice(total)}</span>
                 </div>
               </div>
               <Button onClick={handlePayment} disabled={processing || cartItems.length === 0} className="w-full mb-2">

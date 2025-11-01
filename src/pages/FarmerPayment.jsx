@@ -72,7 +72,7 @@ export default function FarmerPayment() {
           <h1 className="text-2xl font-bold mb-2">Farmer Registration Payment</h1>
           <p className="text-gray-600 mb-6">
             Pay a one-time registration fee of{' '}
-            <span className="font-bold text-farmlink-orange">৳{REGISTRATION_FEE}</span> to complete your registration.
+            <span className="font-bold text-deshbazar-primary">৳{REGISTRATION_FEE}</span> to complete your registration.
           </p>
 
           <div className="mb-6">
@@ -82,7 +82,7 @@ export default function FarmerPayment() {
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
             >
               {Object.entries(PAYMENT_METHODS).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -102,7 +102,7 @@ export default function FarmerPayment() {
               value={paymentData.phone}
               onChange={handleInputChange}
               placeholder="01XXXXXXXXX"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
               required
             />
           </div>
@@ -117,7 +117,7 @@ export default function FarmerPayment() {
               value={paymentData.transactionId}
               onChange={handleInputChange}
               placeholder="Enter transaction ID if available"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
             />
           </div>
 

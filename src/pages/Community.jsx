@@ -157,7 +157,7 @@ export default function Community() {
                 <select
                   value={newQuestion.category}
                   onChange={(e) => setNewQuestion((prev) => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
                 >
                   {filterOptions.categories
                     .filter(({ value }) => value !== 'all')
@@ -178,7 +178,7 @@ export default function Community() {
                   onChange={(e) => setNewQuestion((prev) => ({ ...prev, content: e.target.value }))}
                   placeholder="Provide more details about your question..."
                   rows="5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
                   required
                 />
               </div>
@@ -204,7 +204,7 @@ export default function Community() {
               <select
                 value={filters.category}
                 onChange={handleFilterChange('category')}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
               >
                 {filterOptions.categories.map(({ value, label }) => (
                   <option key={value} value={value}>
@@ -219,7 +219,7 @@ export default function Community() {
               <select
                 value={filters.sortBy}
                 onChange={handleFilterChange('sortBy')}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
               >
                 {filterOptions.sortBy.map(({ value, label }) => (
                   <option key={value} value={value}>
@@ -233,7 +233,7 @@ export default function Community() {
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto"></div>
           </div>
         ) : questions.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
@@ -263,7 +263,7 @@ export default function Community() {
 
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-xl font-semibold text-gray-900 hover:text-farmlink-orange">
+                      <h3 className="text-xl font-semibold text-gray-900 hover:text-deshbazar-primary">
                         {question.title}
                       </h3>
                       <span

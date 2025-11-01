@@ -7,12 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        'farmlink': {
-          'dark': '#1e293b',      // Dark blue (slate-800)
-          'darker': '#0f172a',    // Very dark blue (slate-900)
-          'light': '#334155',     // Lighter dark blue (slate-700)
-          'orange': '#f97316',    // Orange accent
-          'orange-hover': '#ea580c', // Orange hover
+        'deshbazar': {
+          'primary': '#2E7D32',      // Fresh Green - main buttons, CTAs
+          'primary-dark': '#1B5E20', // Darker green for hover
+          'secondary': '#F5E6C5',    // Warm Sand - backgrounds, cards
+          'accent': '#4FC3F7',       // Sky Blue - icons, links, badges
+          'accent-dark': '#0288D1',  // Darker blue for hover
+          'text': '#3E2723',         // Dark Brown - body text, headings
+          'text-light': '#6D4C41',   // Lighter brown for secondary text
         }
       }
     },

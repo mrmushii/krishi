@@ -81,7 +81,7 @@ export default function RateFarmer() {
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto"></div>
           </div>
         </div>
       </div>
@@ -145,7 +145,7 @@ export default function RateFarmer() {
                 onChange={(e) => setReview(e.target.value)}
                 placeholder="Share your experience..."
                 rows="5"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary"
               />
             </div>
 

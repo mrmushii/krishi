@@ -85,7 +85,7 @@ export default function Wishlist() {
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto"></div>
           </div>
         </div>
       </div>
@@ -120,13 +120,13 @@ export default function Wishlist() {
                   )}
                   <div className="p-4">
                     <h3
-                      className="text-xl font-semibold mb-2 cursor-pointer hover:text-farmlink-orange"
+                      className="text-xl font-semibold mb-2 cursor-pointer hover:text-deshbazar-primary"
                       onClick={() => navigate(`/product/${product.id}`)}
                     >
                       {product.name}
                     </h3>
                     <p className="text-gray-600 text-sm mb-2">By: {product.farmerName}</p>
-                    <p className="text-2xl font-bold text-farmlink-orange mb-4">
+                    <p className="text-2xl font-bold text-deshbazar-primary mb-4">
                       {formatPrice(priceInfo.price)}/{product.unit}
                     </p>
                     <div className="flex gap-2">

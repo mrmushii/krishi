@@ -68,7 +68,7 @@ export default function Notifications() {
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto"></div>
           </div>
         ) : notifications.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
@@ -80,7 +80,7 @@ export default function Notifications() {
               <div
                 key={notif.id}
                 className={`bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow ${
-                  !notif.read ? 'border-l-4 border-farmlink-orange' : ''
+                  !notif.read ? 'border-l-4 border-deshbazar-primary' : ''
                 }`}
                 onClick={() => !notif.read && handleMarkAsRead(notif.id)}
               >

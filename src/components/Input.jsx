@@ -16,7 +16,7 @@ const Input = memo(
     ref
   ) {
     const borderClass = error ? 'border-red-500' : 'border-gray-300'
-    const combinedClass = `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange ${borderClass} ${className}`
+    const combinedClass = `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary bg-white text-deshbazar-text ${borderClass} ${className}`
 
     return (
       <div className="mb-4">

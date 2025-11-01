@@ -114,7 +114,7 @@ export default function Cart() {
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto"></div>
           </div>
         </div>
       </div>
@@ -164,7 +164,7 @@ export default function Cart() {
                           />
                         </div>
                         <div>
-                          <p className="text-2xl font-bold text-farmlink-orange">
+                          <p className="text-2xl font-bold text-deshbazar-primary">
                             {formatPrice(itemTotal)}
                           </p>
                           <p className="text-sm text-gray-500">
@@ -200,7 +200,7 @@ export default function Cart() {
                 <div className="border-t pt-4 mb-4">
                   <div className="flex justify-between text-xl font-bold">
                     <span>Total</span>
-                    <span className="text-farmlink-orange">{formatPrice(subtotal)}</span>
+                    <span className="text-deshbazar-primary">{formatPrice(subtotal)}</span>
                   </div>
                 </div>
                 <Button

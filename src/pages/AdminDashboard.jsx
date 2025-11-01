@@ -95,7 +95,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto"></div>
         </div>
       </div>
     )
@@ -154,7 +154,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Total Products</p>
-                <p className="text-3xl font-bold text-farmlink-orange">{stats.products}</p>
+                <p className="text-3xl font-bold text-deshbazar-primary">{stats.products}</p>
               </div>
               <div className="text-4xl">📦</div>
             </div>

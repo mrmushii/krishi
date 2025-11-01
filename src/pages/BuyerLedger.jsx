@@ -90,7 +90,7 @@ export default function BuyerLedger() {
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto" />
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-deshbazar-primary mx-auto" />
           </div>
         </div>
       </div>
@@ -179,7 +179,7 @@ function StatCard({ label, value, highlight, warning }) {
       <p className="text-sm text-gray-500 mb-1">{label}</p>
       <p
         className={`text-3xl font-bold ${
-          highlight ? 'text-farmlink-orange' : warning ? 'text-yellow-600' : 'text-gray-900'
+          highlight ? 'text-deshbazar-primary' : warning ? 'text-yellow-600' : 'text-gray-900'
         }`}
       >
         {value}

@@ -130,7 +130,7 @@ export default function BuyerVerification() {
                 name="businessType"
                 value={formData.businessType}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-deshbazar-primary bg-white"
                 required
                 disabled={loading}
               >

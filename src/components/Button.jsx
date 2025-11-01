@@ -2,10 +2,10 @@ const BASE_STYLES =
   'px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 
 const VARIANTS = {
-  primary: 'bg-farmlink-orange text-white hover:bg-farmlink-orange-hover',
-  secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
+  primary: 'bg-deshbazar-primary text-white hover:bg-deshbazar-primary-dark',
+  secondary: 'bg-deshbazar-secondary text-deshbazar-text hover:bg-yellow-100',
   danger: 'bg-red-600 text-white hover:bg-red-700',
-  outline: 'border-2 border-farmlink-orange text-farmlink-orange hover:bg-orange-50'
+  outline: 'border-2 border-deshbazar-primary text-deshbazar-primary hover:bg-green-50'
 }
 
 export default function Button({

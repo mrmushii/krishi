@@ -19,11 +19,24 @@ export default function NotificationBell() {
   }, [user, userData])
 
   const loadNotifications = async () => {
+    if (!user || !userData) return
+    
     try {
       // Get user-specific notifications
-      const userNotifs = await getUserNotifications(user.uid)
+      let userNotifs = []
+      try {
+        userNotifs = await getUserNotifications(user.uid)
+      } catch (err) {
+        console.log('Could not load user notifications:', err.message)
+      }
+      
       // Get role-specific notifications
-      const roleNotifs = await getRoleNotifications(userData.role, user.uid)
+      let roleNotifs = []
+      try {
+        roleNotifs = await getRoleNotifications(userData.role, user.uid)
+      } catch (err) {
+        console.log('Could not load role notifications:', err.message)
+      }
       
       // Combine and deduplicate
       const allNotifs = [...userNotifs, ...roleNotifs]
@@ -35,6 +48,9 @@ export default function NotificationBell() {
       setUnreadCount(uniqueNotifs.filter(n => !n.read).length)
     } catch (err) {
       console.error('Error loading notifications:', err)
+      // Set empty state on error
+      setNotifications([])
+      setUnreadCount(0)
     }
   }
 
@@ -79,7 +95,7 @@ export default function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="text-xs text-farmlink-orange hover:underline"
+                className="text-xs text-deshbazar-primary hover:underline"
               >
                 Mark all as read
               </button>
