@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
 import { db } from '../config/firebase'
+import { uploadToCloudinary } from '../services/storageService'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import Navbar from '../components/Navbar'
@@ -16,12 +17,24 @@ export default function FarmerDashboard() {
     name: '',
     quantity: '',
     marketPrice: '',
-    unit: 'kg'
+    unit: 'kg',
+    cropImages: []
   })
 
+  // Handle crop image file selection from the file input
+  const handleCropImageUpload = (e) => {
+    const files = e?.target?.files ? Array.from(e.target.files) : []
+    // update using functional setState to avoid stale closure
+    setNewProduct(prev => ({ ...prev, cropImages: files }))
+  }
+
   useEffect(() => {
-    if (userData?.role === 'farmer' && !userData?.verified && !userData?.onboardingComplete) {
-      navigate('/onboarding')
+    if (userData?.role === 'farmer') {
+      if (!userData?.registrationPaid) {
+        navigate('/farmer-payment')
+      } else if (!userData?.verified && !userData?.onboardingComplete) {
+        navigate('/onboarding')
+      }
     }
     loadProducts()
   }, [user, userData])
@@ -36,17 +49,27 @@ export default function FarmerDashboard() {
   const handleAddProduct = async (e) => {
     e.preventDefault()
     try {
+      const cropImageUrls = []
+      
+      // Upload crop images
+      for (const image of newProduct.cropImages) {
+        const url = await uploadToCloudinary(image, `products/${user.uid}`)
+        cropImageUrls.push(url)
+      }
+
       await addDoc(collection(db, 'products'), {
-        ...newProduct,
+        name: newProduct.name,
+        quantity: parseFloat(newProduct.quantity),
+        marketPrice: parseFloat(newProduct.marketPrice),
+        unit: newProduct.unit,
+        cropImages: cropImageUrls,
         farmerId: user.uid,
         farmerName: userData?.name || user.email,
         listedAt: new Date().toISOString(),
         status: 'available',
-        quantity: parseFloat(newProduct.quantity),
-        marketPrice: parseFloat(newProduct.marketPrice),
         createdAt: Timestamp.now()
       })
-      setNewProduct({ name: '', quantity: '', marketPrice: '', unit: 'kg' })
+      setNewProduct({ name: '', quantity: '', marketPrice: '', unit: 'kg', cropImages: [] })
       setShowAddProduct(false)
       loadProducts()
     } catch (err) {
@@ -120,6 +143,45 @@ export default function FarmerDashboard() {
                 onChange={(e) => setNewProduct({ ...newProduct, marketPrice: e.target.value })}
                 required
               />
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Crop Quality Images (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleCropImageUpload}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                {newProduct.cropImages.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600 mb-2">Selected {newProduct.cropImages.length} image(s):</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {newProduct.cropImages.map((img, idx) => (
+                        <div key={idx} className="relative">
+                          <img 
+                            src={URL.createObjectURL(img)} 
+                            alt={`Preview ${idx + 1}`} 
+                            className="w-full h-24 object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newImages = newProduct.cropImages.filter((_, i) => i !== idx)
+                              setNewProduct({ ...newProduct, cropImages: newImages })
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <Button type="submit" className="w-full">Add Product</Button>
             </form>

@@ -59,17 +59,64 @@ export default function Navbar() {
                 Orders
               </button>
 
+              {userData?.role === 'buyer' && (
+                <>
+                  <button
+                    onClick={() => navigate('/cart')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isActive('/cart') 
+                        ? 'bg-farmlink-orange text-white' 
+                        : 'text-gray-300 hover:bg-farmlink-light hover:text-white'
+                    }`}
+                  >
+                    Cart
+                  </button>
+                  <button
+                    onClick={() => navigate('/wishlist')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isActive('/wishlist') 
+                        ? 'bg-farmlink-orange text-white' 
+                        : 'text-gray-300 hover:bg-farmlink-light hover:text-white'
+                    }`}
+                  >
+                    Wishlist
+                  </button>
+                  <button
+                    onClick={() => navigate('/ledger')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isActive('/ledger') 
+                        ? 'bg-farmlink-orange text-white' 
+                        : 'text-gray-300 hover:bg-farmlink-light hover:text-white'
+                    }`}
+                  >
+                    Ledger
+                  </button>
+                </>
+              )}
+
               {userData?.role === 'agent' && (
-                <button
-                  onClick={() => navigate('/')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    isActive('/') && location.pathname === '/' 
-                      ? 'bg-farmlink-orange text-white' 
-                      : 'text-gray-300 hover:bg-farmlink-light hover:text-white'
-                  }`}
-                >
-                  Dashboard
-                </button>
+                <>
+                  <button
+                    onClick={() => navigate('/')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isActive('/') && location.pathname === '/' 
+                        ? 'bg-farmlink-orange text-white' 
+                        : 'text-gray-300 hover:bg-farmlink-light hover:text-white'
+                    }`}
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => navigate('/agent/verification')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      isActive('/agent/verification') 
+                        ? 'bg-farmlink-orange text-white' 
+                        : 'text-gray-300 hover:bg-farmlink-light hover:text-white'
+                    }`}
+                  >
+                    Verifications
+                  </button>
+                </>
               )}
             </div>
           </div>

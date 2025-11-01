@@ -4,9 +4,86 @@ import { doc, getDoc, collection, addDoc, query, where, getDocs, orderBy, Timest
 import { db } from '../config/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { calculateFreshPrice, formatPrice } from '../utils/priceFreshness'
+import { addToCart } from '../services/cartService'
+import { addToWishlist } from '../services/cartService'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import Navbar from '../components/Navbar'
+
+// Add to Cart Button Component
+function AddToCartButton({ productId, product }) {
+  const { user } = useAuth()
+  const [adding, setAdding] = useState(false)
+
+  const handleAddToCart = async () => {
+    if (!user) {
+      alert('Please sign in to add to cart')
+      return
+    }
+    setAdding(true)
+    try {
+      await addToCart({
+        userId: user.uid,
+        productId: productId,
+        productName: product.name,
+        quantity: 1
+      })
+      alert('Added to cart!')
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  return (
+    <Button 
+      variant="outline" 
+      onClick={handleAddToCart}
+      disabled={adding}
+      className="px-3"
+    >
+      {adding ? '...' : '🛒'}
+    </Button>
+  )
+}
+
+// Add to Wishlist Button Component
+function AddToWishlistButton({ productId, product }) {
+  const { user } = useAuth()
+  const [adding, setAdding] = useState(false)
+
+  const handleAddToWishlist = async () => {
+    if (!user) {
+      alert('Please sign in to add to wishlist')
+      return
+    }
+    setAdding(true)
+    try {
+      await addToWishlist({
+        userId: user.uid,
+        productId: productId,
+        productName: product.name
+      })
+      alert('Added to wishlist!')
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  return (
+    <Button 
+      variant="outline" 
+      onClick={handleAddToWishlist}
+      disabled={adding}
+      className="px-3"
+    >
+      {adding ? '...' : '❤️'}
+    </Button>
+  )
+}
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -21,11 +98,18 @@ export default function ProductDetail() {
     coldStorage: false,
     subscriptionPlan: ''
   })
+  const [farmerRatings, setFarmerRatings] = useState(null)
 
   useEffect(() => {
     loadProduct()
     loadMessages()
   }, [id])
+
+  useEffect(() => {
+    if (product) {
+      loadFarmerRatings()
+    }
+  }, [product])
 
   const loadProduct = async () => {
     const docRef = doc(db, 'products', id)
@@ -43,6 +127,16 @@ export default function ProductDetail() {
     )
     const snapshot = await getDocs(q)
     setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+  }
+
+  const loadFarmerRatings = async () => {
+    if (!product) return
+    try {
+      const ratings = await getFarmerRatings(product.farmerId)
+      setFarmerRatings(ratings)
+    } catch (err) {
+      console.error('Error loading ratings:', err)
+    }
   }
 
   const sendMessage = async () => {
@@ -119,6 +213,24 @@ export default function ProductDetail() {
           ← Back to Marketplace
         </Button>
         <div className="bg-white rounded-lg shadow p-6 mb-6">
+          {/* Crop Quality Images */}
+          {product.cropImages && product.cropImages.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">Crop Quality Images</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {product.cropImages.map((imgUrl, idx) => (
+                  <img 
+                    key={idx} 
+                    src={imgUrl} 
+                    alt={`Crop quality ${idx + 1}`}
+                    className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-75"
+                    onClick={() => window.open(imgUrl, '_blank')}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
@@ -163,9 +275,16 @@ export default function ProductDetail() {
           </div>
 
           {userData?.role === 'buyer' && (
-            <Button onClick={() => setShowOrderModal(true)} className="w-full">
-              Place Order
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowOrderModal(true)} 
+                className="flex-1"
+              >
+                Buy Now
+              </Button>
+              <AddToCartButton productId={product.id} product={product} />
+              <AddToWishlistButton productId={product.id} product={product} />
+            </div>
           )}
         </div>
 

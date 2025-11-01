@@ -91,6 +91,9 @@ export default function AgentDashboard() {
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Welcome, {userData?.name || user?.email}</h2>
           <div className="flex gap-2">
+            <Button onClick={() => navigate('/agent/verification')}>
+              Verification Dashboard
+            </Button>
             <Button onClick={() => setShowAnnouncement(true)}>
               Send Announcement
             </Button>

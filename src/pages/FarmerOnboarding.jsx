@@ -54,9 +54,11 @@ export default function FarmerOnboarding() {
 
       await updateDoc(doc(db, 'users', user.uid), {
         ...verificationDocs,
-        onboardingComplete: true
+        onboardingComplete: true,
+        status: 'pending_verification' // Wait for agent approval
       })
 
+      alert('Verification documents submitted! An agent will review your application.')
       navigate('/')
     } catch (err) {
       alert('Error uploading: ' + err.message)

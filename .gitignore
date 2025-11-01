@@ -33,3 +33,4 @@ dist-ssr
 .firebaserc
 firebase-debug.log
 
+.SETUP.md

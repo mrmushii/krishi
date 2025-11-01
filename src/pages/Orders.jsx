@@ -177,6 +177,15 @@ export default function Orders() {
                     Mark as Delivered
                   </Button>
                 )}
+
+                {userData?.role === 'buyer' && order.status === 'delivered' && (
+                  <Button
+                    onClick={() => navigate(`/rate-farmer/${order.id}`)}
+                    className="w-full"
+                  >
+                    Rate Farmer
+                  </Button>
+                )}
               </div>
             ))}
           </div>
