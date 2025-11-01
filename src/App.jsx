@@ -9,6 +9,8 @@ import Marketplace from './pages/Marketplace'
 import ProductDetail from './pages/ProductDetail'
 import FarmerOnboarding from './pages/FarmerOnboarding'
 import Orders from './pages/Orders'
+import Community from './pages/Community'
+import QuestionDetail from './pages/QuestionDetail'
 import Loading from './components/Loading'
 
 function App() {
@@ -38,6 +40,8 @@ function App() {
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/orders" element={<Orders />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/community/question/:id" element={<QuestionDetail />} />
           </>
         ) : (
           <Route path="*" element={<Navigate to="/login" />} />

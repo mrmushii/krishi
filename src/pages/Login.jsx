@@ -62,12 +62,7 @@ export default function Login() {
           </button>
         </p>
 
-        <div className="mt-8 p-4 bg-gray-100 rounded-lg text-sm">
-          <p className="font-semibold mb-2">Demo Accounts:</p>
-          <p>Farmer: farmer@demo.com / password123</p>
-          <p>Buyer: buyer@demo.com / password123</p>
-          <p>Agent: agent@demo.com / password123</p>
-        </div>
+        
       </div>
     </div>
   )

@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { calculateFreshPrice, formatPrice } from '../utils/priceFreshness'
 import Button from '../components/Button'
 import Input from '../components/Input'
+import Navbar from '../components/Navbar'
 
 export default function Marketplace() {
   const { userData } = useAuth()
@@ -61,16 +62,9 @@ export default function Marketplace() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-green-600">Krishi Marketplace</h1>
-          <Button variant="outline" onClick={() => navigate('/')}>
-            Dashboard
-          </Button>
-        </div>
-      </nav>
+      <Navbar />
 
-      <div className="max-w-6xl mx-auto p-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow p-4 mb-6">
           <h2 className="text-lg font-semibold mb-4">Filters</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

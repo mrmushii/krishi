@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { db } from '../config/firebase'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/Button'
+import Navbar from '../components/Navbar'
 
 export default function Orders() {
   const { user, userData } = useAuth()
@@ -62,16 +63,9 @@ export default function Orders() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-green-600">My Orders</h1>
-          <Button variant="outline" onClick={() => navigate('/')}>
-            ← Dashboard
-          </Button>
-        </div>
-      </nav>
-
-      <div className="max-w-6xl mx-auto p-4">
+      <Navbar />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {orders.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
             No orders yet

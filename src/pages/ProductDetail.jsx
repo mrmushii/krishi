@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 import { calculateFreshPrice, formatPrice } from '../utils/priceFreshness'
 import Button from '../components/Button'
 import Input from '../components/Input'
+import Navbar from '../components/Navbar'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -111,13 +112,12 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm p-4">
-        <Button variant="outline" onClick={() => navigate('/marketplace')}>
+      <Navbar />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Button variant="outline" onClick={() => navigate('/marketplace')} className="mb-6">
           ← Back to Marketplace
         </Button>
-      </nav>
-
-      <div className="max-w-4xl mx-auto p-4">
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <div className="flex justify-between items-start mb-4">
             <div>
