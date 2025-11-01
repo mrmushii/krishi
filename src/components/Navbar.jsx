@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { signOut } from '../services/authService'
 import Button from './Button'
+import NotificationBell from './NotificationBell'
 
 const baseLinks = [
   { path: '/marketplace', label: 'Marketplace' },
@@ -68,6 +69,7 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center space-x-4">
+            <NotificationBell />
             <div className="hidden sm:block text-gray-300">
               {userData?.name || 'User'}
               {userData?.verified && (

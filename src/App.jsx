@@ -20,6 +20,8 @@ import Checkout from './pages/Checkout'
 import Wishlist from './pages/Wishlist'
 import BuyerLedger from './pages/BuyerLedger'
 import Landing from './pages/Landing'
+import AdminDashboard from './pages/AdminDashboard'
+import Notifications from './pages/Notifications'
 import Loading from './components/Loading'
 
 const roleHome = {

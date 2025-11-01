@@ -167,13 +167,22 @@ export default function Orders() {
                     </div>
                   )}
 
-                  {order.paymentHeld && (
-                    <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
-                      <p className="text-sm text-yellow-800">
-                        💰 Payment held in escrow until delivery
-                      </p>
-                    </div>
-                  )}
+                {order.paymentHeld && order.status !== 'cancelled' && (
+                  <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      💰 Payment held in escrow until delivery
+                    </p>
+                  </div>
+                )}
+
+                {order.status === 'cancelled' && (
+                  <div className="mb-4 p-3 bg-red-50 rounded-lg">
+                    <p className="text-sm text-red-800">
+                      ✕ Order Cancelled
+                      {order.cancelledReason && <span className="block mt-1">Reason: {order.cancelledReason}</span>}
+                    </p>
+                  </div>
+                )}
 
                   {renderActions(order)}
                 </div>

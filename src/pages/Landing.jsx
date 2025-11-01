@@ -32,18 +32,23 @@ export default function Landing() {
 
   const loadStats = async () => {
     try {
-      const [productsSnap, farmersSnap, agentsSnap, buyersSnap] = await Promise.all([
-        getDocs(query(collection(db, 'products'), where('status', '==', 'available'))),
-        getDocs(query(collection(db, 'users'), where('role', '==', 'farmer'), where('verified', '==', true))),
-        getDocs(query(collection(db, 'users'), where('role', '==', 'agent'))),
-        getDocs(query(collection(db, 'users'), where('role', '==', 'buyer'), where('verified', '==', true)))
-      ])
-
+      // Get all products
+      const productsSnap = await getDocs(collection(db, 'products'))
+      const availableProducts = productsSnap.docs.filter(doc => doc.data().status === 'available').length
+      
+      // Get all users
+      const usersSnap = await getDocs(collection(db, 'users'))
+      const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      
+      const verifiedFarmers = users.filter(u => u.role === 'farmer' && u.verified).length
+      const agents = users.filter(u => u.role === 'agent').length
+      const verifiedBuyers = users.filter(u => u.role === 'buyer' && u.verified).length
+      
       setStats({
-        totalProducts: productsSnap.size,
-        connectedFarmers: farmersSnap.size,
-        workingAgents: agentsSnap.size,
-        buyersServed: buyersSnap.size
+        totalProducts: availableProducts,
+        connectedFarmers: verifiedFarmers,
+        workingAgents: agents,
+        buyersServed: verifiedBuyers
       })
     } catch (err) {
       console.error('Error loading stats:', err)

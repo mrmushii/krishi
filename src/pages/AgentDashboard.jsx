@@ -189,15 +189,26 @@ export default function AgentDashboard() {
                           <span className={`px-2 py-1 rounded text-xs ${badgeClass}`}>{order.status}</span>
                         </td>
                         <td className="p-2">
-                          {buttonConfig && (
-                            <Button
-                              variant="outline"
-                              onClick={() => updateOrderStatus(order.id, buttonConfig.next)}
-                              className="text-xs px-2 py-1"
-                            >
-                              {buttonConfig.label}
-                            </Button>
-                          )}
+                          <div className="flex gap-1">
+                            {buttonConfig && (
+                              <Button
+                                variant="outline"
+                                onClick={() => updateOrderStatus(order.id, buttonConfig.next)}
+                                className="text-xs px-2 py-1"
+                              >
+                                {buttonConfig.label}
+                              </Button>
+                            )}
+                            {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                              <Button
+                                variant="danger"
+                                onClick={() => handleCancelOrder(order.id, order)}
+                                className="text-xs px-2 py-1"
+                              >
+                                Cancel
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )

@@ -34,7 +34,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-green-600 mb-8">Krishi</h1>
+        <h1 className="text-3xl font-bold text-center text-farmlink-orange mb-8">FarmLink</h1>
         <h2 className="text-2xl font-semibold text-center mb-6">Sign In</h2>
 
         <form onSubmit={handleSubmit}>

@@ -14,8 +14,10 @@ import { db } from '../config/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { calculateFreshPrice, formatPrice } from '../utils/priceFreshness'
 import { addToCart, addToWishlist } from '../services/cartService'
+import { getFarmerRatings } from '../services/ratingService'
 import Button from '../components/Button'
 import Input from '../components/Input'
+import Navbar from '../components/Navbar'
 
 function AddToCartButton({ productId, product }) {
   const { user } = useAuth()

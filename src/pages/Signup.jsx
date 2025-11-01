@@ -25,7 +25,8 @@ export default function Signup() {
     () => [
       { value: 'buyer', label: 'Buyer' },
       { value: 'farmer', label: 'Farmer' },
-      { value: 'agent', label: 'Agent' }
+      { value: 'agent', label: 'Agent' },
+      { value: 'admin', label: 'Admin' }
     ],
     []
   )
@@ -48,7 +49,7 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-green-600 mb-8">Krishi</h1>
+        <h1 className="text-3xl font-bold text-center text-farmlink-orange mb-8">FarmLink</h1>
         <h2 className="text-2xl font-semibold text-center mb-6">Sign Up</h2>
 
         <form onSubmit={handleSubmit}>
@@ -80,7 +81,7 @@ export default function Signup() {
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
               required
             >
               {roleOptions.map(option => (
@@ -100,7 +101,7 @@ export default function Signup() {
 
         <p className="text-center text-sm text-gray-600">
           Already have an account?{' '}
-          <button onClick={() => navigate('/login')} className="text-green-600 hover:underline">
+          <button onClick={() => navigate('/login')} className="text-farmlink-orange hover:underline">
             Sign in
           </button>
         </p>
