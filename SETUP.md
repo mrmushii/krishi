@@ -51,12 +51,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Users can read/write their own data
+    // Agents can update users for verification purposes
     match /users/{userId} {
+      // Anyone authenticated can read users
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-      // Agents can read all users for verification
-      allow read: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agent';
+      
+      // Users can write their own data
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can update their own data, OR agents can update for verification
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agent')
+      );
+      
+      // Users can delete their own data
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
     
     // Products - anyone authenticated can read, only farmers can write
