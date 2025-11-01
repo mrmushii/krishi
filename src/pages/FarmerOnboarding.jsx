@@ -7,6 +7,8 @@ import { uploadID, uploadCropPhoto } from '../services/storageService'
 import Input from '../components/Input'
 import Button from '../components/Button'
 
+const MIN_CROP_PHOTOS = 2
+
 export default function FarmerOnboarding() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -16,55 +18,72 @@ export default function FarmerOnboarding() {
     farmLocation: '',
     farmAddress: ''
   })
-  const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleIDUpload = (e) => {
-    setFormData({ ...formData, idCard: e.target.files[0] })
+  const handleIDUpload = ({ target }) => {
+    const file = target.files?.[0] ?? null
+    if (file) {
+      setFormData((prev) => ({ ...prev, idCard: file }))
+    }
   }
 
-  const handleCropPhotoUpload = (e) => {
-    const files = Array.from(e.target.files)
-    setFormData({ ...formData, cropPhotos: [...formData.cropPhotos, ...files] })
+  const handleCropPhotoUpload = ({ target }) => {
+    const files = Array.from(target.files ?? [])
+    if (files.length) {
+      setFormData((prev) => ({
+        ...prev,
+        cropPhotos: [...prev.cropPhotos, ...files]
+      }))
+    }
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    setUploading(true)
+    if (!user?.uid) {
+      alert('Please sign in again.')
+      return
+    }
+    if (formData.cropPhotos.length < MIN_CROP_PHOTOS) {
+      alert(`Upload at least ${MIN_CROP_PHOTOS} crop photos.`)
+      return
+    }
 
+    setSubmitting(true)
     try {
+      const idCardPromise = formData.idCard
+        ? uploadID(formData.idCard, user.uid)
+        : Promise.resolve(null)
+
+      const cropPhotoUrlsPromise = Promise.all(
+        formData.cropPhotos.map((photo) => uploadCropPhoto(photo, user.uid))
+      )
+
+      const [idCardUrl, cropPhotoUrls] = await Promise.all([
+        idCardPromise,
+        cropPhotoUrlsPromise
+      ])
+
       const verificationDocs = {
-        idCardUrl: null,
-        cropPhotoUrls: [],
+        idCardUrl,
+        cropPhotoUrls,
         farmLocation: formData.farmLocation,
         farmAddress: formData.farmAddress,
-        verified: true, // Auto-verify for hackathon
+        verified: true,
         verifiedAt: new Date().toISOString()
-      }
-
-      if (formData.idCard) {
-        verificationDocs.idCardUrl = await uploadID(formData.idCard, user.uid)
-      }
-
-      for (const photo of formData.cropPhotos) {
-        const url = await uploadCropPhoto(photo, user.uid)
-        verificationDocs.cropPhotoUrls.push(url)
       }
 
       await updateDoc(doc(db, 'users', user.uid), {
         ...verificationDocs,
         onboardingComplete: true,
-        status: 'pending_verification' // Wait for agent approval
+        status: 'pending_verification'
       })
 
       alert('Verification documents submitted! An agent will review your application.')
       navigate('/')
-    } catch (err) {
-      alert('Error uploading: ' + err.message)
+    } catch (error) {
+      alert('Error uploading: ' + error.message)
     } finally {
-      setLoading(false)
-      setUploading(false)
+      setSubmitting(false)
     }
   }
 
@@ -72,7 +91,7 @@ export default function FarmerOnboarding() {
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-2xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Farmer Verification</h1>
-        
+
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -92,7 +111,7 @@ export default function FarmerOnboarding() {
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Crop Photos <span className="text-red-500">*</span> (at least 2)
+              Crop Photos <span className="text-red-500">*</span> (at least {MIN_CROP_PHOTOS})
             </label>
             <input
               type="file"
@@ -103,10 +122,12 @@ export default function FarmerOnboarding() {
             />
             {formData.cropPhotos.length > 0 && (
               <div className="mt-2">
-                <p className="text-sm text-gray-600">Selected {formData.cropPhotos.length} photo(s):</p>
+                <p className="text-sm text-gray-600">
+                  Selected {formData.cropPhotos.length} photo(s):
+                </p>
                 <ul className="list-disc list-inside text-sm text-gray-600">
                   {formData.cropPhotos.map((photo, idx) => (
-                    <li key={idx}>{photo.name}</li>
+                    <li key={`${photo.name}-${idx}`}>{photo.name}</li>
                   ))}
                 </ul>
               </div>
@@ -116,7 +137,9 @@ export default function FarmerOnboarding() {
           <Input
             label="Farm Location (Coordinates or Address)"
             value={formData.farmLocation}
-            onChange={(e) => setFormData({ ...formData, farmLocation: e.target.value })}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, farmLocation: e.target.value }))
+            }
             placeholder="e.g., 28.6139° N, 77.2090° E or Farm address"
             required
           />
@@ -124,17 +147,22 @@ export default function FarmerOnboarding() {
           <Input
             label="Full Farm Address"
             value={formData.farmAddress}
-            onChange={(e) => setFormData({ ...formData, farmAddress: e.target.value })}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, farmAddress: e.target.value }))
+            }
             placeholder="Complete address of your farm"
             required
           />
 
-          <Button type="submit" disabled={loading || uploading} className="w-full">
-            {uploading ? 'Uploading...' : loading ? 'Submitting...' : 'Complete Verification'}
+          <Button
+            type="submit"
+            disabled={submitting || formData.cropPhotos.length < MIN_CROP_PHOTOS}
+            className="w-full"
+          >
+            {submitting ? 'Uploading...' : 'Complete Verification'}
           </Button>
         </form>
       </div>
     </div>
   )
 }
-

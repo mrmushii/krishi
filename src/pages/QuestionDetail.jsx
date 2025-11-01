@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { getQuestion, postAnswer, voteOnPost, acceptAnswer, incrementViews } from '../services/communityService'
+import {
+  getQuestion,
+  postAnswer,
+  voteOnPost,
+  acceptAnswer,
+  incrementViews
+} from '../services/communityService'
 import Navbar from '../components/Navbar'
 import Button from '../components/Button'
 
@@ -14,39 +20,39 @@ export default function QuestionDetail() {
   const [answerContent, setAnswerContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (id) {
-      loadQuestion()
-    }
-  }, [id])
-
-  const loadQuestion = async () => {
+  const loadQuestion = useCallback(async () => {
+    if (!id) return
     setLoading(true)
     try {
-      const data = await getQuestion(id)
+      const [data] = await Promise.all([
+        getQuestion(id),
+        user ? incrementViews(id) : Promise.resolve()
+      ])
       setQuestion(data)
-      if (data && user) {
-        await incrementViews(id)
-      }
     } catch (err) {
       console.error('Error loading question:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, user])
 
-  const handleSubmitAnswer = async (e) => {
+  useEffect(() => {
+    loadQuestion()
+  }, [loadQuestion])
+
+  const handleSubmitAnswer = useCallback(async (e) => {
     e.preventDefault()
     if (!user) {
       alert('Please sign in to answer')
       return
     }
+    if (!answerContent.trim()) return
 
     setSubmitting(true)
     try {
       await postAnswer({
         questionId: id,
-        content: answerContent,
+        content: answerContent.trim(),
         userId: user.uid,
         userName: userData?.name || user.email,
         userRole: userData?.role
@@ -58,9 +64,9 @@ export default function QuestionDetail() {
     } finally {
       setSubmitting(false)
     }
-  }
+  }, [answerContent, id, loadQuestion, user, userData])
 
-  const handleVote = async (postType, postId, voteType) => {
+  const handleVote = useCallback(async (postType, postId, voteType) => {
     if (!user) {
       alert('Please sign in to vote')
       return
@@ -71,10 +77,10 @@ export default function QuestionDetail() {
     } catch (err) {
       alert('Error voting: ' + err.message)
     }
-  }
+  }, [loadQuestion, user])
 
-  const handleAcceptAnswer = async (answerId) => {
-    if (!user || user.uid !== question.userId) {
+  const handleAcceptAnswer = useCallback(async (answerId) => {
+    if (!user || user.uid !== question?.userId) {
       alert('Only the question author can accept an answer')
       return
     }
@@ -84,13 +90,19 @@ export default function QuestionDetail() {
     } catch (err) {
       alert('Error accepting answer: ' + err.message)
     }
-  }
+  }, [id, loadQuestion, question?.userId, user])
 
-  const formatDate = (timestamp) => {
+  const formatDate = useCallback((timestamp) => {
     if (!timestamp) return 'N/A'
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
     return date.toLocaleString()
-  }
+  }, [])
+
+  const answers = useMemo(() => question?.answers ?? [], [question])
+  const answerCount = answers.length
+  const isQuestionAuthor = user?.uid === question?.userId
+  const questionVotes = question?.votes ?? 0
+  const questionViews = question?.views ?? 0
 
   if (loading) {
     return (
@@ -98,7 +110,7 @@ export default function QuestionDetail() {
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto" />
           </div>
         </div>
       </div>
@@ -124,17 +136,16 @@ export default function QuestionDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button 
-          variant="secondary" 
+        <Button
+          variant="secondary"
           onClick={() => navigate('/community')}
           className="mb-6"
         >
           ← Back to Community
         </Button>
 
-        {/* Question */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex gap-4">
             <div className="flex-shrink-0 text-center">
@@ -143,16 +154,16 @@ export default function QuestionDetail() {
                 className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
               >
                 <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"/>
+                  <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" />
                 </svg>
               </button>
-              <div className="text-2xl font-bold text-gray-700 my-2">{question.votes || 0}</div>
+              <div className="text-2xl font-bold text-gray-700 my-2">{questionVotes}</div>
               <button
                 onClick={() => handleVote('question', question.id, 'down')}
                 className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
               >
                 <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                 </svg>
               </button>
             </div>
@@ -160,12 +171,17 @@ export default function QuestionDetail() {
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-3">{question.title}</h1>
               <div className="flex flex-wrap items-center gap-2 mb-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  question.category === 'farming' ? 'bg-green-100 text-green-800' :
-                  question.category === 'buying' ? 'bg-blue-100 text-blue-800' :
-                  question.category === 'pricing' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    question.category === 'farming'
+                      ? 'bg-green-100 text-green-800'
+                      : question.category === 'buying'
+                        ? 'bg-blue-100 text-blue-800'
+                        : question.category === 'pricing'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
                   {question.category}
                 </span>
                 {question.tags?.map((tag, idx) => (
@@ -186,23 +202,22 @@ export default function QuestionDetail() {
                   <span>•</span>
                   <span>Asked {formatDate(question.createdAt)}</span>
                   <span>•</span>
-                  <span>{question.views || 0} views</span>
+                  <span>{questionViews} views</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Answers */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            {question.answers?.length || 0} {question.answers?.length === 1 ? 'Answer' : 'Answers'}
+            {answerCount} {answerCount === 1 ? 'Answer' : 'Answers'}
           </h2>
 
-          {question.answers && question.answers.length > 0 ? (
+          {answerCount > 0 ? (
             <div className="space-y-4">
-              {question.answers.map(answer => (
-                <div 
+              {answers.map((answer) => (
+                <div
                   key={answer.id}
                   className={`bg-white rounded-lg shadow-md p-6 ${
                     answer.isAccepted ? 'border-2 border-green-500' : ''
@@ -215,7 +230,7 @@ export default function QuestionDetail() {
                         className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
                       >
                         <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"/>
+                          <path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" />
                         </svg>
                       </button>
                       <div className="text-xl font-bold text-gray-700 my-2">{answer.votes || 0}</div>
@@ -224,7 +239,7 @@ export default function QuestionDetail() {
                         className="block w-10 h-10 text-gray-400 hover:text-farmlink-orange transition-colors"
                       >
                         <svg className="w-6 h-6 mx-auto" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+                          <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                         </svg>
                       </button>
                       {answer.isAccepted && (
@@ -247,7 +262,7 @@ export default function QuestionDetail() {
                           <span>•</span>
                           <span>{formatDate(answer.createdAt)}</span>
                         </div>
-                        {user && user.uid === question.userId && !answer.isAccepted && (
+                        {isQuestionAuthor && !answer.isAccepted && (
                           <Button
                             variant="outline"
                             onClick={() => handleAcceptAnswer(answer.id)}
@@ -269,7 +284,6 @@ export default function QuestionDetail() {
           )}
         </div>
 
-        {/* Answer Form */}
         {user && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">Your Answer</h2>
@@ -292,4 +306,3 @@ export default function QuestionDetail() {
     </div>
   )
 }
-

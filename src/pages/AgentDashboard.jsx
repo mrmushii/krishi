@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc, query, orderBy, Timestamp } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../config/firebase'
@@ -6,6 +6,21 @@ import { useAuth } from '../hooks/useAuth'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import Navbar from '../components/Navbar'
+
+const STATUS_STYLES = {
+  delivered: 'bg-green-100 text-green-800',
+  'in-transit': 'bg-blue-100 text-blue-800',
+  packed: 'bg-yellow-100 text-yellow-800',
+  accepted: 'bg-purple-100 text-purple-800',
+  default: 'bg-gray-100 text-gray-800'
+}
+
+const STATUS_FLOW = {
+  pending: { label: 'Accept', next: 'accepted' },
+  accepted: { label: 'Mark Packed', next: 'packed' },
+  packed: { label: 'Ship', next: 'in-transit' },
+  'in-transit': { label: 'Deliver', next: 'delivered' }
+}
 
 export default function AgentDashboard() {
   const { user, userData } = useAuth()
@@ -15,33 +30,36 @@ export default function AgentDashboard() {
   const [announcementText, setAnnouncementText] = useState('')
   const [targetRole, setTargetRole] = useState('all')
 
-  useEffect(() => {
-    loadOrders()
-  }, [])
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'))
     const snapshot = await getDocs(q)
-    setOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-  }
+    setOrders(snapshot.docs.map(orderDoc => ({ id: orderDoc.id, ...orderDoc.data() })))
+  }, [])
 
-  const updateOrderStatus = async (orderId, newStatus) => {
-    try {
-      await updateDoc(doc(db, 'orders', orderId), {
-        status: newStatus,
-        updatedAt: Timestamp.now()
-      })
-      loadOrders()
-    } catch (err) {
-      alert('Error updating order: ' + err.message)
-    }
-  }
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
 
-  const sendAnnouncement = async () => {
+  const updateOrderStatus = useCallback(
+    async (orderId, newStatus) => {
+      try {
+        await updateDoc(doc(db, 'orders', orderId), {
+          status: newStatus,
+          updatedAt: Timestamp.now()
+        })
+        loadOrders()
+      } catch (err) {
+        alert(`Error updating order: ${err.message}`)
+      }
+    },
+    [loadOrders]
+  )
+
+  const sendAnnouncement = useCallback(async () => {
     if (!announcementText.trim()) return
     try {
       await addDoc(collection(db, 'announcements'), {
-        text: announcementText,
+        text: announcementText.trim(),
         targetRole,
         createdBy: user.uid,
         createdByName: userData?.name || user.email,
@@ -51,11 +69,11 @@ export default function AgentDashboard() {
       setAnnouncementText('')
       setShowAnnouncement(false)
     } catch (err) {
-      alert('Error sending announcement: ' + err.message)
+      alert(`Error sending announcement: ${err.message}`)
     }
-  }
+  }, [announcementText, targetRole, user, userData])
 
-  const exportLedger = () => {
+  const exportLedger = useCallback(() => {
     const csvRows = [
       ['Order ID', 'Product', 'Farmer', 'Buyer', 'Quantity', 'Unit Price', 'Total Price', 'Status', 'Date']
     ]
@@ -66,9 +84,9 @@ export default function AgentDashboard() {
         order.productName || '',
         order.farmerName || '',
         order.buyerName || '',
-        order.quantity || 0,
-        order.unitPrice || 0,
-        order.totalPrice || 0,
+        order.quantity ?? 0,
+        order.unitPrice ?? 0,
+        order.totalPrice ?? 0,
         order.status || '',
         order.createdAt?.toDate().toLocaleString() || ''
       ])
@@ -77,26 +95,23 @@ export default function AgentDashboard() {
     const csvContent = csvRows.map(row => row.join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `ledger_${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-  }
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `ledger_${new Date().toISOString().split('T')[0]}.csv`
+    anchor.click()
+    window.URL.revokeObjectURL(url)
+  }, [orders])
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Welcome, {userData?.name || user?.email}</h2>
           <div className="flex gap-2">
-            <Button onClick={() => navigate('/agent/verification')}>
-              Verification Dashboard
-            </Button>
-            <Button onClick={() => setShowAnnouncement(true)}>
-              Send Announcement
-            </Button>
+            <Button onClick={() => navigate('/agent/verification')}>Verification Dashboard</Button>
+            <Button onClick={() => setShowAnnouncement(true)}>Send Announcement</Button>
             <Button variant="outline" onClick={exportLedger}>
               Export Ledger (CSV)
             </Button>
@@ -110,7 +125,7 @@ export default function AgentDashboard() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Target</label>
               <select
                 value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
+                onChange={e => setTargetRole(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="all">All Users</option>
@@ -120,7 +135,7 @@ export default function AgentDashboard() {
             </div>
             <textarea
               value={announcementText}
-              onChange={(e) => setAnnouncementText(e.target.value)}
+              onChange={e => setAnnouncementText(e.target.value)}
               placeholder="Enter announcement text..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-4"
               rows="4"
@@ -136,7 +151,7 @@ export default function AgentDashboard() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">All Orders</h2>
-          
+
           {orders.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No orders yet</p>
           ) : (
@@ -155,65 +170,38 @@ export default function AgentDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map(order => (
-                    <tr key={order.id} className="border-b">
-                      <td className="p-2 text-sm">{order.id.substring(0, 8)}...</td>
-                      <td className="p-2">{order.productName}</td>
-                      <td className="p-2">{order.farmerName}</td>
-                      <td className="p-2">{order.buyerName}</td>
-                      <td className="p-2">{order.quantity} {order.unit}</td>
-                      <td className="p-2">৳{order.totalPrice?.toFixed(2) || 0}</td>
-                      <td className="p-2">
-                        <span className={`px-2 py-1 rounded text-xs ${
-                          order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                          order.status === 'in-transit' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'packed' ? 'bg-yellow-100 text-yellow-800' :
-                          order.status === 'accepted' ? 'bg-purple-100 text-purple-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="p-2">
-                        {order.status === 'pending' && (
-                          <Button
-                            variant="outline"
-                            onClick={() => updateOrderStatus(order.id, 'accepted')}
-                            className="text-xs px-2 py-1"
-                          >
-                            Accept
-                          </Button>
-                        )}
-                        {order.status === 'accepted' && (
-                          <Button
-                            variant="outline"
-                            onClick={() => updateOrderStatus(order.id, 'packed')}
-                            className="text-xs px-2 py-1"
-                          >
-                            Mark Packed
-                          </Button>
-                        )}
-                        {order.status === 'packed' && (
-                          <Button
-                            variant="outline"
-                            onClick={() => updateOrderStatus(order.id, 'in-transit')}
-                            className="text-xs px-2 py-1"
-                          >
-                            Ship
-                          </Button>
-                        )}
-                        {order.status === 'in-transit' && (
-                          <Button
-                            variant="outline"
-                            onClick={() => updateOrderStatus(order.id, 'delivered')}
-                            className="text-xs px-2 py-1"
-                          >
-                            Deliver
-                          </Button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {orders.map(order => {
+                    const buttonConfig = STATUS_FLOW[order.status]
+                    const badgeClass = STATUS_STYLES[order.status] || STATUS_STYLES.default
+                    const totalPrice = Number(order.totalPrice ?? 0).toFixed(2)
+
+                    return (
+                      <tr key={order.id} className="border-b">
+                        <td className="p-2 text-sm">{order.id.substring(0, 8)}...</td>
+                        <td className="p-2">{order.productName}</td>
+                        <td className="p-2">{order.farmerName}</td>
+                        <td className="p-2">{order.buyerName}</td>
+                        <td className="p-2">
+                          {order.quantity} {order.unit}
+                        </td>
+                        <td className="p-2">৳{totalPrice}</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded text-xs ${badgeClass}`}>{order.status}</span>
+                        </td>
+                        <td className="p-2">
+                          {buttonConfig && (
+                            <Button
+                              variant="outline"
+                              onClick={() => updateOrderStatus(order.id, buttonConfig.next)}
+                              className="text-xs px-2 py-1"
+                            >
+                              {buttonConfig.label}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -223,4 +211,3 @@ export default function AgentDashboard() {
     </div>
   )
 }
-

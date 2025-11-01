@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { collection, getDocs, query, orderBy } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { db } from '../config/firebase'
@@ -12,53 +12,47 @@ export default function Marketplace() {
   const { userData } = useAuth()
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
-  const [filteredProducts, setFilteredProducts] = useState([])
   const [filters, setFilters] = useState({
     search: '',
     maxPrice: '',
     productName: ''
   })
 
-  useEffect(() => {
-    loadProducts()
+  const loadProducts = useCallback(async () => {
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
+    const snapshot = await getDocs(q)
+    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
   }, [])
 
   useEffect(() => {
-    applyFilters()
-  }, [products, filters])
+    loadProducts()
+  }, [loadProducts])
 
-  const loadProducts = async () => {
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'))
-    const snapshot = await getDocs(q)
-    const productsList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    setProducts(productsList)
-  }
+  const handleFilterChange = useCallback((key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+  }, [])
 
-  const applyFilters = () => {
-    let filtered = products.filter(p => p.status === 'available')
-
-    if (filters.search) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        p.farmerName?.toLowerCase().includes(filters.search.toLowerCase())
-      )
-    }
-
-    if (filters.maxPrice) {
-      filtered = filtered.filter(p => {
-        const priceInfo = calculateFreshPrice(p.marketPrice, p.listedAt)
-        return priceInfo.price <= parseFloat(filters.maxPrice)
+  const filteredProducts = useMemo(() => {
+    return products
+      .filter(p => p.status === 'available')
+      .filter(p => {
+        if (!filters.search) return true
+        const search = filters.search.toLowerCase()
+        return (
+          p.name.toLowerCase().includes(search) ||
+          p.farmerName?.toLowerCase().includes(search)
+        )
       })
-    }
-
-    if (filters.productName) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(filters.productName.toLowerCase())
-      )
-    }
-
-    setFilteredProducts(filtered)
-  }
+      .filter(p => {
+        if (!filters.maxPrice) return true
+        const priceInfo = calculateFreshPrice(p.marketPrice, p.listedAt)
+        return priceInfo.price <= Number(filters.maxPrice)
+      })
+      .filter(p => {
+        if (!filters.productName) return true
+        return p.name.toLowerCase().includes(filters.productName.toLowerCase())
+      })
+  }, [products, filters])
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -71,18 +65,18 @@ export default function Marketplace() {
             <Input
               placeholder="Search products or farmers..."
               value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
             />
             <Input
               type="number"
               placeholder="Max price"
               value={filters.maxPrice}
-              onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
+              onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
             />
             <Input
               placeholder="Product name"
               value={filters.productName}
-              onChange={(e) => setFilters({ ...filters, productName: e.target.value })}
+              onChange={(e) => handleFilterChange('productName', e.target.value)}
             />
           </div>
         </div>
@@ -108,12 +102,12 @@ export default function Marketplace() {
                         </span>
                       )}
                     </div>
-                    
+
                     <p className="text-gray-600 text-sm mb-2">By: {product.farmerName}</p>
                     <p className="text-gray-600 mb-2">
                       Available: {product.quantity} {product.unit}
                     </p>
-                    
+
                     <div className="mb-2">
                       {priceInfo.isFresh ? (
                         <p className="text-2xl font-bold text-green-600">
@@ -133,7 +127,7 @@ export default function Marketplace() {
                         Listed {priceInfo.daysOld === 0 ? 'today' : `${priceInfo.daysOld} day(s) ago`}
                       </p>
                     </div>
-                    
+
                     <Button
                       onClick={() => navigate(`/product/${product.id}`)}
                       className="w-full mt-4"
@@ -150,4 +144,3 @@ export default function Marketplace() {
     </div>
   )
 }
-

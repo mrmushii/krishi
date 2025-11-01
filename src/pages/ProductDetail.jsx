@@ -1,16 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { doc, getDoc, collection, addDoc, query, where, getDocs, orderBy, Timestamp } from 'firebase/firestore'
+import {
+  doc,
+  onSnapshot,
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  Timestamp
+} from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../hooks/useAuth'
 import { calculateFreshPrice, formatPrice } from '../utils/priceFreshness'
-import { addToCart } from '../services/cartService'
-import { addToWishlist } from '../services/cartService'
+import { addToCart, addToWishlist } from '../services/cartService'
 import Button from '../components/Button'
 import Input from '../components/Input'
-import Navbar from '../components/Navbar'
 
-// Add to Cart Button Component
 function AddToCartButton({ productId, product }) {
   const { user } = useAuth()
   const [adding, setAdding] = useState(false)
@@ -24,7 +30,7 @@ function AddToCartButton({ productId, product }) {
     try {
       await addToCart({
         userId: user.uid,
-        productId: productId,
+        productId,
         productName: product.name,
         quantity: 1
       })
@@ -37,18 +43,12 @@ function AddToCartButton({ productId, product }) {
   }
 
   return (
-    <Button 
-      variant="outline" 
-      onClick={handleAddToCart}
-      disabled={adding}
-      className="px-3"
-    >
+    <Button variant="outline" onClick={handleAddToCart} disabled={adding} className="px-3">
       {adding ? '...' : '🛒'}
     </Button>
   )
 }
 
-// Add to Wishlist Button Component
 function AddToWishlistButton({ productId, product }) {
   const { user } = useAuth()
   const [adding, setAdding] = useState(false)
@@ -62,7 +62,7 @@ function AddToWishlistButton({ productId, product }) {
     try {
       await addToWishlist({
         userId: user.uid,
-        productId: productId,
+        productId,
         productName: product.name
       })
       alert('Added to wishlist!')
@@ -74,12 +74,7 @@ function AddToWishlistButton({ productId, product }) {
   }
 
   return (
-    <Button 
-      variant="outline" 
-      onClick={handleAddToWishlist}
-      disabled={adding}
-      className="px-3"
-    >
+    <Button variant="outline" onClick={handleAddToWishlist} disabled={adding} className="px-3">
       {adding ? '...' : '❤️'}
     </Button>
   )
@@ -101,45 +96,55 @@ export default function ProductDetail() {
   const [farmerRatings, setFarmerRatings] = useState(null)
 
   useEffect(() => {
-    loadProduct()
-    loadMessages()
+    if (!id) return
+
+    const unsub = onSnapshot(doc(db, 'products', id), snapshot => {
+      if (snapshot.exists()) setProduct({ id: snapshot.id, ...snapshot.data() })
+      else setProduct(null)
+    })
+
+    return unsub
   }, [id])
 
   useEffect(() => {
-    if (product) {
-      loadFarmerRatings()
-    }
-  }, [product])
+    if (!id) return
 
-  const loadProduct = async () => {
-    const docRef = doc(db, 'products', id)
-    const docSnap = await getDoc(docRef)
-    if (docSnap.exists()) {
-      setProduct({ id: docSnap.id, ...docSnap.data() })
-    }
-  }
-
-  const loadMessages = async () => {
     const q = query(
       collection(db, 'messages'),
       where('productId', '==', id),
       orderBy('createdAt', 'asc')
     )
-    const snapshot = await getDocs(q)
-    setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-  }
+    const unsub = onSnapshot(q, snapshot => {
+      setMessages(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+    })
 
-  const loadFarmerRatings = async () => {
-    if (!product) return
+    return unsub
+  }, [id])
+
+  const loadFarmerRatings = useCallback(async () => {
+    if (!product?.farmerId) return
     try {
       const ratings = await getFarmerRatings(product.farmerId)
       setFarmerRatings(ratings)
     } catch (err) {
       console.error('Error loading ratings:', err)
     }
-  }
+  }, [product?.farmerId])
+
+  useEffect(() => {
+    loadFarmerRatings()
+  }, [loadFarmerRatings])
+
+  const priceInfo = useMemo(() => {
+    if (!product) return null
+    return calculateFreshPrice(product.marketPrice, product.listedAt)
+  }, [product?.marketPrice, product?.listedAt])
 
   const sendMessage = async () => {
+    if (!user) {
+      alert('Please sign in to send messages')
+      return
+    }
     if (!newMessage.trim()) return
     try {
       await addDoc(collection(db, 'messages'), {
@@ -147,26 +152,30 @@ export default function ProductDetail() {
         fromUserId: user.uid,
         fromUserName: userData?.name || user.email,
         fromUserRole: userData?.role,
-        message: newMessage,
+        message: newMessage.trim(),
         createdAt: Timestamp.now()
       })
       setNewMessage('')
-      loadMessages()
     } catch (err) {
       alert('Error sending message: ' + err.message)
     }
   }
 
   const placeOrder = async () => {
-    if (!orderData.quantity || parseFloat(orderData.quantity) <= 0) {
+    if (!user) {
+      alert('Please sign in to place orders')
+      return
+    }
+    const quantity = parseFloat(orderData.quantity)
+    if (!quantity || quantity <= 0) {
       alert('Please enter a valid quantity')
       return
     }
+    if (!priceInfo) return
 
     try {
-      const priceInfo = calculateFreshPrice(product.marketPrice, product.listedAt)
-      const totalPrice = priceInfo.price * parseFloat(orderData.quantity)
-      
+      const totalPrice = priceInfo.price * quantity
+
       await addDoc(collection(db, 'orders'), {
         productId: product.id,
         productName: product.name,
@@ -174,7 +183,7 @@ export default function ProductDetail() {
         farmerName: product.farmerName,
         buyerId: user.uid,
         buyerName: userData?.name || user.email,
-        quantity: parseFloat(orderData.quantity),
+        quantity,
         unit: product.unit,
         unitPrice: priceInfo.price,
         totalPrice,
@@ -183,7 +192,7 @@ export default function ProductDetail() {
         status: 'pending',
         coldStorage: orderData.coldStorage,
         subscriptionPlan: orderData.subscriptionPlan || null,
-        paymentHeld: true, // Escrow flag
+        paymentHeld: true,
         createdAt: Timestamp.now()
       })
 
@@ -196,32 +205,31 @@ export default function ProductDetail() {
     }
   }
 
-  if (!product) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-lg">Loading...</div>
-    </div>
+  if (!product || !priceInfo) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    )
   }
-
-  const priceInfo = calculateFreshPrice(product.marketPrice, product.listedAt)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Button variant="outline" onClick={() => navigate('/marketplace')} className="mb-6">
           ← Back to Marketplace
         </Button>
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          {/* Crop Quality Images */}
-          {product.cropImages && product.cropImages.length > 0 && (
+          {product.cropImages?.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3">Crop Quality Images</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {product.cropImages.map((imgUrl, idx) => (
-                  <img 
-                    key={idx} 
-                    src={imgUrl} 
+                  <img
+                    key={idx}
+                    src={imgUrl}
                     alt={`Crop quality ${idx + 1}`}
                     className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-75"
                     onClick={() => window.open(imgUrl, '_blank')}
@@ -230,7 +238,7 @@ export default function ProductDetail() {
               </div>
             </div>
           )}
-          
+
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
@@ -266,20 +274,21 @@ export default function ProductDetail() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-gray-500">Available Quantity</p>
-              <p className="text-lg font-semibold">{product.quantity} {product.unit}</p>
+              <p className="text-lg font-semibold">
+                {product.quantity} {product.unit}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Listed Date</p>
-              <p className="text-lg font-semibold">{new Date(product.listedAt).toLocaleDateString()}</p>
+              <p className="text-lg font-semibold">
+                {new Date(product.listedAt).toLocaleDateString()}
+              </p>
             </div>
           </div>
 
           {userData?.role === 'buyer' && (
             <div className="flex gap-2">
-              <Button 
-                onClick={() => setShowOrderModal(true)} 
-                className="flex-1"
-              >
+              <Button onClick={() => setShowOrderModal(true)} className="flex-1">
                 Buy Now
               </Button>
               <AddToCartButton productId={product.id} product={product} />
@@ -292,12 +301,12 @@ export default function ProductDetail() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full">
               <h2 className="text-xl font-semibold mb-4">Place Order</h2>
-              
+
               <Input
                 label={`Quantity (${product.unit})`}
                 type="number"
                 value={orderData.quantity}
-                onChange={(e) => setOrderData({ ...orderData, quantity: e.target.value })}
+                onChange={e => setOrderData({ ...orderData, quantity: e.target.value })}
                 required
               />
 
@@ -306,7 +315,9 @@ export default function ProductDetail() {
                   <input
                     type="checkbox"
                     checked={orderData.coldStorage}
-                    onChange={(e) => setOrderData({ ...orderData, coldStorage: e.target.checked })}
+                    onChange={e =>
+                      setOrderData({ ...orderData, coldStorage: e.target.checked })
+                    }
                     className="mr-2"
                   />
                   <span>Book Cold Storage</span>
@@ -320,7 +331,9 @@ export default function ProductDetail() {
                   </label>
                   <select
                     value={orderData.subscriptionPlan}
-                    onChange={(e) => setOrderData({ ...orderData, subscriptionPlan: e.target.value })}
+                    onChange={e =>
+                      setOrderData({ ...orderData, subscriptionPlan: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="">Select plan</option>
@@ -332,7 +345,9 @@ export default function ProductDetail() {
 
               {orderData.quantity && (
                 <div className="mb-4 p-3 bg-gray-100 rounded">
-                  <p className="text-sm text-gray-600">Total: {formatPrice(priceInfo.price * parseFloat(orderData.quantity || 0))}</p>
+                  <p className="text-sm text-gray-600">
+                    Total: {formatPrice(priceInfo.price * parseFloat(orderData.quantity || 0))}
+                  </p>
                   {orderData.coldStorage && orderData.subscriptionPlan && (
                     <p className="text-sm text-gray-600">
                       + Storage: ৳{orderData.subscriptionPlan === 'basic' ? '500' : '1500'}/month
@@ -342,8 +357,14 @@ export default function ProductDetail() {
               )}
 
               <div className="flex gap-2">
-                <Button onClick={placeOrder} className="flex-1">Confirm Order</Button>
-                <Button variant="secondary" onClick={() => setShowOrderModal(false)} className="flex-1">
+                <Button onClick={placeOrder} className="flex-1">
+                  Confirm Order
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowOrderModal(false)}
+                  className="flex-1"
+                >
                   Cancel
                 </Button>
               </div>
@@ -353,16 +374,21 @@ export default function ProductDetail() {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Questions & Messages</h2>
-          
+
           <div className="mb-4 space-y-3 max-h-64 overflow-y-auto">
             {messages.length === 0 ? (
               <p className="text-gray-500 text-center py-4">No messages yet</p>
             ) : (
               messages.map(msg => (
-                <div key={msg.id} className={`p-3 rounded-lg ${
-                  msg.fromUserId === user?.uid ? 'bg-green-50 ml-8' : 'bg-gray-100 mr-8'
-                }`}>
-                  <p className="text-sm font-semibold">{msg.fromUserName} ({msg.fromUserRole})</p>
+                <div
+                  key={msg.id}
+                  className={`p-3 rounded-lg ${
+                    msg.fromUserId === user?.uid ? 'bg-green-50 ml-8' : 'bg-gray-100 mr-8'
+                  }`}
+                >
+                  <p className="text-sm font-semibold">
+                    {msg.fromUserName} ({msg.fromUserRole})
+                  </p>
                   <p>{msg.message}</p>
                   <p className="text-xs text-gray-500 mt-1">
                     {msg.createdAt?.toDate().toLocaleString()}
@@ -376,10 +402,10 @@ export default function ProductDetail() {
             <input
               type="text"
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={e => setNewMessage(e.target.value)}
               placeholder="Type your message..."
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              onKeyDown={e => e.key === 'Enter' && sendMessage()}
             />
             <Button onClick={sendMessage}>Send</Button>
           </div>
@@ -388,4 +414,3 @@ export default function ProductDetail() {
     </div>
   )
 }
-

@@ -22,57 +22,85 @@ import BuyerLedger from './pages/BuyerLedger'
 import Landing from './pages/Landing'
 import Loading from './components/Loading'
 
+const roleHome = {
+  farmer: '/farmer',
+  buyer: '/buyer',
+  agent: '/agent',
+}
+
 function App() {
   const { user, userData, loading } = useAuth()
 
-  if (loading) {
-    return <Loading />
-  }
+  if (loading) return <Loading />
+
+  const homePath = user ? roleHome[userData?.role] ?? '/agent' : '/login'
+
+  const restrictedRoutes = [
+    { path: '/farmer', element: <FarmerDashboard />, canAccess: () => userData?.role === 'farmer' },
+    { path: '/buyer', element: <BuyerDashboard />, canAccess: () => userData?.role === 'buyer' },
+    { path: '/agent', element: <AgentDashboard />, canAccess: () => userData?.role === 'agent' },
+    {
+      path: '/farmer-payment',
+      element: <FarmerPayment />,
+      canAccess: () => userData?.role === 'farmer' && !userData.registrationPaid,
+    },
+    {
+      path: '/onboarding',
+      element: <FarmerOnboarding />,
+      canAccess: () =>
+        userData?.role === 'farmer' && userData.registrationPaid && !userData.verified,
+    },
+    {
+      path: '/buyer-verification',
+      element: <BuyerVerification />,
+      canAccess: () => userData?.role === 'buyer' && !userData.verified,
+    },
+    {
+      path: '/agent/verification',
+      element: <AgentVerificationDashboard />,
+      canAccess: () => userData?.role === 'agent',
+    },
+  ]
+
+  const sharedRoutes = [
+    { path: '/marketplace', element: <Marketplace /> },
+    { path: '/product/:id', element: <ProductDetail /> },
+    { path: '/orders', element: <Orders /> },
+    { path: '/rate-farmer/:orderId', element: <RateFarmer /> },
+    { path: '/cart', element: <Cart /> },
+    { path: '/checkout', element: <Checkout /> },
+    { path: '/wishlist', element: <Wishlist /> },
+    { path: '/ledger', element: <BuyerLedger /> },
+    { path: '/community', element: <Community /> },
+    { path: '/community/question/:id', element: <QuestionDetail /> },
+  ]
 
   return (
     <Router>
       <Routes>
         <Route path="/landing" element={<Landing />} />
-        <Route path="/" element={!user ? <Landing /> : <Navigate to={userData?.role === 'farmer' ? '/farmer' : userData?.role === 'buyer' ? '/buyer' : '/agent'} />} />
-        <Route path="/login" element={!user ? <Login /> : <Navigate to={userData?.role === 'farmer' ? '/farmer' : userData?.role === 'buyer' ? '/buyer' : '/agent'} />} />
-        <Route path="/signup" element={!user ? <Signup /> : <Navigate to={userData?.role === 'farmer' ? '/farmer' : userData?.role === 'buyer' ? '/buyer' : '/agent'} />} />
-        
+        <Route path="/" element={user ? <Navigate to={homePath} replace /> : <Landing />} />
+        <Route path="/login" element={user ? <Navigate to={homePath} replace /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to={homePath} replace /> : <Signup />} />
+
         {user && userData ? (
           <>
-            <Route path="/farmer" element={
-              userData.role === 'farmer' ? <FarmerDashboard /> : <Navigate to="/" />
-            } />
-            <Route path="/buyer" element={
-              userData.role === 'buyer' ? <BuyerDashboard /> : <Navigate to="/" />
-            } />
-            <Route path="/agent" element={
-              userData.role === 'agent' ? <AgentDashboard /> : <Navigate to="/" />
-            } />
-            <Route path="/farmer-payment" element={
-              userData.role === 'farmer' && !userData.registrationPaid ? <FarmerPayment /> : <Navigate to="/" />
-            } />
-            <Route path="/onboarding" element={
-              userData.role === 'farmer' && userData.registrationPaid && !userData.verified ? <FarmerOnboarding /> : <Navigate to="/" />
-            } />
-            <Route path="/buyer-verification" element={
-              userData.role === 'buyer' && !userData.verified ? <BuyerVerification /> : <Navigate to="/" />
-            } />
-            <Route path="/agent/verification" element={
-              userData.role === 'agent' ? <AgentVerificationDashboard /> : <Navigate to="/" />
-            } />
-            <Route path="/marketplace" element={<Marketplace />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/rate-farmer/:orderId" element={<RateFarmer />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/ledger" element={<BuyerLedger />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/community/question/:id" element={<QuestionDetail />} />
+            {restrictedRoutes.map(({ path, element, canAccess, redirect }) => (
+              <Route
+                key={path}
+                path={path}
+                element={canAccess() ? element : <Navigate to={redirect ?? homePath} replace />}
+              />
+            ))}
+
+            {sharedRoutes.map(({ path, element }) => (
+              <Route key={path} path={path} element={element} />
+            ))}
+
+            <Route path="*" element={<Navigate to={homePath} replace />} />
           </>
         ) : (
-          <Route path="*" element={<Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         )}
       </Routes>
     </Router>
@@ -80,4 +108,3 @@ function App() {
 }
 
 export default App
-

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { doc, updateDoc } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
@@ -8,43 +8,58 @@ import Input from '../components/Input'
 import Button from '../components/Button'
 import Navbar from '../components/Navbar'
 
+const initialFormData = {
+  tradeLicense: null,
+  businessName: '',
+  businessAddress: '',
+  businessType: '',
+  contactNumber: ''
+}
+
 export default function BuyerVerification() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [formData, setFormData] = useState({
-    tradeLicense: null,
-    businessName: '',
-    businessAddress: '',
-    businessType: '',
-    contactNumber: ''
-  })
+  const [formData, setFormData] = useState(initialFormData)
   const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
 
-  const handleTradeLicenseUpload = (e) => {
-    setFormData({ ...formData, tradeLicense: e.target.files[0] })
+  const businessTypes = useMemo(
+    () => [
+      { value: '', label: 'Select business type' },
+      { value: 'retailer', label: 'Retailer' },
+      { value: 'wholesaler', label: 'Wholesaler' },
+      { value: 'restaurant', label: 'Restaurant' },
+      { value: 'hotel', label: 'Hotel' },
+      { value: 'processor', label: 'Food Processor' },
+      { value: 'other', label: 'Other' }
+    ],
+    []
+  )
+
+  const handleChange = ({ target: { name, value } }) =>
+    setFormData((prev) => ({ ...prev, [name]: value }))
+
+  const handleTradeLicenseUpload = ({ target: { files } }) => {
+    if (!files?.length) return
+    setFormData((prev) => ({ ...prev, tradeLicense: files[0] }))
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!user?.uid) return
     setLoading(true)
-    setUploading(true)
 
     try {
+      const { tradeLicense, ...rest } = formData
       const verificationData = {
-        businessName: formData.businessName,
-        businessAddress: formData.businessAddress,
-        businessType: formData.businessType,
-        contactNumber: formData.contactNumber,
-        tradeLicenseUrl: null,
+        ...rest,
         verified: false,
         status: 'pending_verification',
         verificationRequestedAt: new Date().toISOString()
       }
 
-      if (formData.tradeLicense) {
+      if (tradeLicense) {
         verificationData.tradeLicenseUrl = await uploadToCloudinary(
-          formData.tradeLicense,
+          tradeLicense,
           `buyers/${user.uid}/verification`
         )
       }
@@ -57,14 +72,13 @@ export default function BuyerVerification() {
       alert('Error submitting verification: ' + err.message)
     } finally {
       setLoading(false)
-      setUploading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h1 className="text-2xl font-bold mb-2">Buyer Verification</h1>
@@ -83,6 +97,7 @@ export default function BuyerVerification() {
                 onChange={handleTradeLicenseUpload}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 required
+                disabled={loading}
               />
               {formData.tradeLicense && (
                 <p className="text-sm text-gray-600 mt-1">Selected: {formData.tradeLicense.name}</p>
@@ -90,17 +105,21 @@ export default function BuyerVerification() {
             </div>
 
             <Input
+              name="businessName"
               label="Business Name"
               value={formData.businessName}
-              onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+              onChange={handleChange}
               required
+              disabled={loading}
             />
 
             <Input
+              name="businessAddress"
               label="Business Address"
               value={formData.businessAddress}
-              onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
+              onChange={handleChange}
               required
+              disabled={loading}
             />
 
             <div className="mb-4">
@@ -108,32 +127,34 @@ export default function BuyerVerification() {
                 Business Type <span className="text-red-500">*</span>
               </label>
               <select
+                name="businessType"
                 value={formData.businessType}
-                onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
+                onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange"
                 required
+                disabled={loading}
               >
-                <option value="">Select business type</option>
-                <option value="retailer">Retailer</option>
-                <option value="wholesaler">Wholesaler</option>
-                <option value="restaurant">Restaurant</option>
-                <option value="hotel">Hotel</option>
-                <option value="processor">Food Processor</option>
-                <option value="other">Other</option>
+                {businessTypes.map(({ value, label }) => (
+                  <option key={value || 'placeholder'} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </div>
 
             <Input
+              name="contactNumber"
               label="Contact Number"
               type="tel"
               value={formData.contactNumber}
-              onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
+              onChange={handleChange}
               placeholder="01XXXXXXXXX"
               required
+              disabled={loading}
             />
 
-            <Button type="submit" disabled={loading || uploading} className="w-full">
-              {uploading ? 'Uploading...' : loading ? 'Submitting...' : 'Submit for Verification'}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? 'Submitting...' : 'Submit for Verification'}
             </Button>
           </form>
         </div>
@@ -141,4 +162,3 @@ export default function BuyerVerification() {
     </div>
   )
 }
-

@@ -1,40 +1,49 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { collection, getDocs, query, where, doc, updateDoc, Timestamp } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../hooks/useAuth'
 import Navbar from '../components/Navbar'
 import Button from '../components/Button'
 
+const ROLE_CONFIG = [
+  { key: 'farmers', role: 'farmer' },
+  { key: 'buyers', role: 'buyer' }
+]
+
 export default function AgentVerificationDashboard() {
   const { userData } = useAuth()
-  const [farmers, setFarmers] = useState([])
-  const [buyers, setBuyers] = useState([])
+  const [users, setUsers] = useState({ farmers: [], buyers: [] })
   const [activeTab, setActiveTab] = useState('farmers')
 
-  useEffect(() => {
-    loadPendingFarmers()
-    loadPendingBuyers()
+  const loadPendingUsers = useCallback(async () => {
+    try {
+      const snapshots = await Promise.all(
+        ROLE_CONFIG.map(({ role }) =>
+          getDocs(
+            query(
+              collection(db, 'users'),
+              where('role', '==', role),
+              where('status', '==', 'pending_verification')
+            )
+          )
+        )
+      )
+
+      setUsers(
+        snapshots.reduce((acc, snapshot, index) => {
+          const key = ROLE_CONFIG[index].key
+          acc[key] = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+          return acc
+        }, { farmers: [], buyers: [] })
+      )
+    } catch (err) {
+      console.error('Failed to load pending users', err)
+    }
   }, [])
 
-  const loadPendingFarmers = async () => {
-    const q = query(
-      collection(db, 'users'),
-      where('role', '==', 'farmer'),
-      where('status', '==', 'pending_verification')
-    )
-    const snapshot = await getDocs(q)
-    setFarmers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-  }
-
-  const loadPendingBuyers = async () => {
-    const q = query(
-      collection(db, 'users'),
-      where('role', '==', 'buyer'),
-      where('status', '==', 'pending_verification')
-    )
-    const snapshot = await getDocs(q)
-    setBuyers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
-  }
+  useEffect(() => {
+    loadPendingUsers()
+  }, [loadPendingUsers])
 
   const handleVerify = async (userId, type, action) => {
     try {
@@ -46,11 +55,11 @@ export default function AgentVerificationDashboard() {
         verificationNotes: action === 'approve' ? 'Approved by agent' : 'Rejected by agent'
       })
 
-      if (type === 'farmer') {
-        loadPendingFarmers()
-      } else {
-        loadPendingBuyers()
-      }
+      const listKey = type === 'farmer' ? 'farmers' : 'buyers'
+      setUsers(prev => ({
+        ...prev,
+        [listKey]: prev[listKey].filter(user => user.id !== userId)
+      }))
 
       alert(`${action === 'approve' ? 'Approved' : 'Rejected'} successfully!`)
     } catch (err) {
@@ -58,17 +67,18 @@ export default function AgentVerificationDashboard() {
     }
   }
 
+  const activeList = users[activeTab]
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Verification Dashboard</h1>
           <p className="text-gray-600">Review and approve farmer and buyer registrations</p>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => setActiveTab('farmers')}
@@ -78,7 +88,7 @@ export default function AgentVerificationDashboard() {
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             }`}
           >
-            Farmers ({farmers.length})
+            Farmers ({users.farmers.length})
           </button>
           <button
             onClick={() => setActiveTab('buyers')}
@@ -88,19 +98,18 @@ export default function AgentVerificationDashboard() {
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             }`}
           >
-            Buyers ({buyers.length})
+            Buyers ({users.buyers.length})
           </button>
         </div>
 
-        {/* Farmers List */}
         {activeTab === 'farmers' && (
           <div className="space-y-4">
-            {farmers.length === 0 ? (
+            {activeList.length === 0 ? (
               <div className="bg-white rounded-lg shadow-md p-12 text-center">
                 <p className="text-gray-500">No pending farmer verifications</p>
               </div>
             ) : (
-              farmers.map(farmer => (
+              activeList.map(farmer => (
                 <div key={farmer.id} className="bg-white rounded-lg shadow-md p-6">
                   <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex-1">
@@ -117,7 +126,9 @@ export default function AgentVerificationDashboard() {
                         <div>
                           <p className="text-sm text-gray-500">Payment Status</p>
                           <p className="font-medium text-green-600">
-                            {farmer.registrationPaid ? '✓ Paid (৳' + (farmer.registrationFee || 500) + ')' : 'Not Paid'}
+                            {farmer.registrationPaid
+                              ? '✓ Paid (৳' + (farmer.registrationFee || 500) + ')'
+                              : 'Not Paid'}
                           </p>
                         </div>
                         <div>
@@ -133,12 +144,17 @@ export default function AgentVerificationDashboard() {
                         </div>
                       )}
 
-                      {farmer.cropPhotoUrls && farmer.cropPhotoUrls.length > 0 && (
+                      {farmer.cropPhotoUrls?.length > 0 && (
                         <div className="mb-4">
                           <p className="text-sm text-gray-500 mb-2">Crop Photos</p>
                           <div className="grid grid-cols-3 gap-2">
                             {farmer.cropPhotoUrls.map((url, idx) => (
-                              <img key={idx} src={url} alt={`Crop ${idx + 1}`} className="w-full h-24 object-cover rounded-lg border" />
+                              <img
+                                key={idx}
+                                src={url}
+                                alt={`Crop ${idx + 1}`}
+                                className="w-full h-24 object-cover rounded-lg border"
+                              />
                             ))}
                           </div>
                         </div>
@@ -167,15 +183,14 @@ export default function AgentVerificationDashboard() {
           </div>
         )}
 
-        {/* Buyers List */}
         {activeTab === 'buyers' && (
           <div className="space-y-4">
-            {buyers.length === 0 ? (
+            {activeList.length === 0 ? (
               <div className="bg-white rounded-lg shadow-md p-12 text-center">
                 <p className="text-gray-500">No pending buyer verifications</p>
               </div>
             ) : (
-              buyers.map(buyer => (
+              activeList.map(buyer => (
                 <div key={buyer.id} className="bg-white rounded-lg shadow-md p-6">
                   <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex-1">
@@ -232,4 +247,3 @@ export default function AgentVerificationDashboard() {
     </div>
   )
 }
-

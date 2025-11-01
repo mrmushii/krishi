@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import Button from '../components/Button'
 import { calculateFreshPrice, formatPrice } from '../utils/priceFreshness'
@@ -38,7 +38,7 @@ export default function Landing() {
         getDocs(query(collection(db, 'users'), where('role', '==', 'agent'))),
         getDocs(query(collection(db, 'users'), where('role', '==', 'buyer'), where('verified', '==', true)))
       ])
-      
+
       setStats({
         totalProducts: productsSnap.size,
         connectedFarmers: farmersSnap.size,
@@ -55,25 +55,27 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navbar */}
-      <nav className="bg-farmlink-dark shadow-lg">
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-white text-gray-900">
+      <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <svg className="w-8 h-8 text-farmlink-orange" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 2L3 7v11c0 .552.448 1 1 1h3v-6h6v6h3c.552 0 1-.448 1-1V7l-7-5z"/>
+              <svg className="w-9 h-9 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2L3 7v11c0 .552.448 1 1 1h3v-6h6v6h3c.552 0 1-.448 1-1V7l-7-5z" />
               </svg>
-              <span className="ml-2 text-xl font-bold text-white">FarmLink</span>
+              <span className="ml-2 text-2xl font-bold text-emerald-600">FarmLink</span>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-3 items-center">
               <button
                 onClick={() => navigate('/login')}
-                className="text-gray-300 hover:text-white px-4 py-2"
+                className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors"
               >
                 Sign In
               </button>
-              <Button onClick={() => navigate('/signup')}>
+              <Button
+                onClick={() => navigate('/signup')}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-sm"
+              >
                 Get Started
               </Button>
             </div>
@@ -81,158 +83,182 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-green-600 to-green-800 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-5xl font-bold mb-6">Connect Farmers Directly with Buyers</h1>
-          <p className="text-xl mb-8 text-green-100">
-            Fair trade, transparent pricing, and quality assurance for everyone
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Button onClick={() => navigate('/signup')} className="bg-white text-green-600 hover:bg-gray-100">
-              Join as Farmer
-            </Button>
-            <Button onClick={() => navigate('/signup')} variant="outline" className="border-white text-white hover:bg-white hover:text-green-600">
-              Join as Buyer
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* About Us */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">About FarmLink</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Our mission is to connect farmers directly with buyers, eliminating middlemen and ensuring fair prices. 
-              We promote transparent trade, quality assurance, and sustainable agriculture practices.
+      <main>
+        <section id="hero" className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-20">
+          <div className="max-w-6xl mx-auto px-4 text-center">
+            <p className="uppercase tracking-[0.4em] text-emerald-100 text-xs sm:text-sm mb-6">
+              fair • transparent • sustainable
             </p>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+              Connecting Farmers Directly With Buyers
+            </h1>
+            <p className="text-lg sm:text-xl text-emerald-50 max-w-2xl mx-auto mb-10 leading-relaxed">
+              Unlock better prices, fresher produce, and trusted partnerships across the agricultural value chain.
+            </p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <Button
+                onClick={() => navigate('/signup')}
+                className="min-w-[160px] bg-white text-emerald-700 font-semibold hover:bg-emerald-100 hover:text-emerald-800"
+              >
+                Join as Farmer
+              </Button>
+              <Button
+                onClick={() => navigate('/signup')}
+                variant="outline"
+                className="min-w-[160px] border-white text-white hover:bg-white hover:text-emerald-700 font-semibold"
+              >
+                Join as Buyer
+              </Button>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-semibold mb-2">Our Mission</h3>
-              <p className="text-gray-600">Empower farmers by connecting them directly with buyers, ensuring fair trade and better livelihoods.</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-semibold mb-2">Our Vision</h3>
-              <p className="text-gray-600">Create a sustainable agricultural marketplace where quality meets transparency.</p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-xl font-semibold mb-2">Fair Trade</h3>
-              <p className="text-gray-600">We believe in fair pricing, quality products, and building trust between farmers and buyers.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center mb-12">Our Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">🌾</div>
-              <h3 className="text-xl font-semibold mb-2">Direct Connection</h3>
-              <p className="text-gray-600">Connect farmers with buyers without intermediaries</p>
+        <section id="about" className="py-16">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="text-center mb-12">
+              <span className="text-sm uppercase tracking-[0.3em] text-emerald-500">Who We Are</span>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-emerald-700">About FarmLink</h2>
+              <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                Our marketplace eliminates unnecessary middlemen, allowing farmers to showcase quality produce while
+                buyers gain transparent pricing and reliable supply. Together, we foster sustainable agriculture.
+              </p>
             </div>
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">❄️</div>
-              <h3 className="text-xl font-semibold mb-2">Cold Storage</h3>
-              <p className="text-gray-600">Rent cold storage facilities for your produce</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">🚚</div>
-              <h3 className="text-xl font-semibold mb-2">Easy Transportation</h3>
-              <p className="text-gray-600">Streamlined logistics and delivery options</p>
-            </div>
-            <div className="text-center p-6">
-              <div className="text-4xl mb-4">💬</div>
-              <h3 className="text-xl font-semibold mb-2">24/7 Support</h3>
-              <p className="text-gray-600">Round-the-clock customer support and community Q&A</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  title: 'Mission-Led',
+                  copy: 'Empower farmers through direct market access and fair trade, ensuring dignified livelihoods.'
+                },
+                {
+                  title: 'Sustainable Vision',
+                  copy: 'Build a resilient, traceable supply chain where every stakeholder benefits from clarity.'
+                },
+                {
+                  title: 'Trust First',
+                  copy: 'Guarantee quality and transparency so buyers source confidently and communities thrive.'
+                }
+              ].map((item) => (
+                <article
+                  key={item.title}
+                  className="bg-white rounded-2xl shadow-md shadow-emerald-100/70 p-6 border border-emerald-100"
+                >
+                  <h3 className="text-xl font-semibold text-emerald-600 mb-3">{item.title}</h3>
+                  <p className="text-gray-600 leading-relaxed">{item.copy}</p>
+                </article>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Product Showcase */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center mb-12">Featured Products</h2>
-          {products.length === 0 ? (
-            <p className="text-center text-gray-500">No products available yet</p>
-          ) : (
+        <section id="features" className="py-16 bg-emerald-50/70">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-center text-emerald-700 mb-12">
+              Built for Modern Agriculture
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {products.map(product => {
-                const priceInfo = calculateFreshPrice(product.marketPrice, product.listedAt)
-                return (
-                  <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-                    {product.cropImages && product.cropImages.length > 0 && (
-                      <img 
-                        src={product.cropImages[0]} 
-                        alt={product.name}
-                        className="w-full h-48 object-cover"
-                      />
-                    )}
-                    <div className="p-4">
-                      <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
-                      <p className="text-gray-600 text-sm mb-2">By: {product.farmerName}</p>
-                      <p className="text-2xl font-bold text-farmlink-orange mb-4">
-                        {formatPrice(priceInfo.price)}/{product.unit}
-                      </p>
-                      <Button 
-                        onClick={() => handleProductClick(product.id)}
-                        className="w-full"
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Analytics */}
-      <section className="py-16 bg-farmlink-dark text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center mb-12">Our Impact</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-farmlink-orange mb-2">{stats.totalProducts}</div>
-              <div className="text-xl">Total Products</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-farmlink-orange mb-2">{stats.connectedFarmers}</div>
-              <div className="text-xl">Connected Farmers</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-farmlink-orange mb-2">{stats.workingAgents}</div>
-              <div className="text-xl">Working Agents</div>
-            </div>
-            <div className="text-center">
-              <div className="text-5xl font-bold text-farmlink-orange mb-2">{stats.buyersServed}</div>
-              <div className="text-xl">Buyers Served</div>
+              {[
+                { icon: '🌾', title: 'Direct Farm Deals', copy: 'Negotiate transparently with verified farmers nationwide.' },
+                { icon: '❄️', title: 'Smart Cold Storage', copy: 'Reserve temperature-controlled hubs for extended freshness.' },
+                { icon: '🚚', title: 'Optimized Logistics', copy: 'Leverage trusted transport partners for last-mile delivery.' },
+                { icon: '💬', title: '24/7 Support', copy: 'Access multilingual help, agronomy tips, and financing advice.' }
+              ].map((feature) => (
+                <article
+                  key={feature.title}
+                  className="bg-white rounded-2xl border border-emerald-100 p-6 text-center shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="text-4xl mb-4">{feature.icon}</div>
+                  <h3 className="text-xl font-semibold text-emerald-600 mb-2">{feature.title}</h3>
+                  <p className="text-gray-600">{feature.copy}</p>
+                </article>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <section id="products" className="py-16 bg-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex flex-col items-center text-center mb-12">
+              <span className="text-sm uppercase tracking-[0.3em] text-emerald-500">Fresh Today</span>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-emerald-700">Featured Products</h2>
+              <p className="mt-4 text-gray-600 max-w-2xl">
+                Browse spotlight harvests adjusted for freshness so you always get the fairest market value.
+              </p>
+            </div>
+            {products.length === 0 ? (
+              <p className="text-center text-gray-500">No products available yet</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map(product => {
+                  const priceInfo = calculateFreshPrice(product.marketPrice, product.listedAt)
+                  return (
+                    <article
+                      key={product.id}
+                      className="group bg-white border border-emerald-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow"
+                    >
+                      {product.cropImages?.length > 0 && (
+                        <div className="relative">
+                          <img
+                            src={product.cropImages[0]}
+                            alt={product.name}
+                            className="w-full h-52 object-cover group-hover:scale-[1.02] transition-transform"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                        </div>
+                      )}
+                      <div className="p-5">
+                        <h3 className="text-xl font-semibold text-emerald-700 mb-1">{product.name}</h3>
+                        <p className="text-sm text-gray-500 mb-4">By {product.farmerName}</p>
+                        <div className="flex items-baseline gap-2 mb-4">
+                          <span className="text-2xl font-bold text-emerald-600">{formatPrice(priceInfo.price)}</span>
+                          <span className="text-sm text-gray-500">/ {product.unit}</span>
+                        </div>
+                        <Button
+                          onClick={() => handleProductClick(product.id)}
+                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="py-16 bg-gradient-to-r from-emerald-700 to-emerald-800 text-white">
+          <div className="max-w-6xl mx-auto px-4">
+            <h2 className="text-3xl sm:text-4xl font-bold text-center mb-12">Our Growing Impact</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { label: 'Total Products', value: stats.totalProducts },
+                { label: 'Connected Farmers', value: stats.connectedFarmers },
+                { label: 'Working Agents', value: stats.workingAgents },
+                { label: 'Buyers Served', value: stats.buyersServed }
+              ].map((item) => (
+                <div key={item.label} className="bg-white/10 rounded-2xl px-6 py-8 text-center">
+                  <div className="text-4xl font-bold text-white">{item.value}</div>
+                  <div className="mt-2 text-sm uppercase tracking-[0.3em] text-emerald-100">{item.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="bg-gray-900 text-gray-300 py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             <div>
-              <h3 className="text-xl font-bold mb-4">FarmLink</h3>
-              <p className="text-gray-400">
-                Connecting farmers directly with buyers for fair trade and quality produce.
+              <h3 className="text-xl font-semibold text-white mb-4">FarmLink</h3>
+              <p className="leading-relaxed">
+                Enabling fair sourcing, fresher produce, and smarter logistics for the agricultural community.
               </p>
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-4">Quick Links</h3>
-              <ul className="space-y-2 text-gray-400">
+              <h3 className="text-xl font-semibold text-white mb-4">Quick Links</h3>
+              <ul className="space-y-2 text-sm">
                 <li><a href="#about" className="hover:text-white">About Us</a></li>
                 <li><a href="#features" className="hover:text-white">Features</a></li>
                 <li><a href="#products" className="hover:text-white">Products</a></li>
@@ -240,12 +266,12 @@ export default function Landing() {
               </ul>
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-4">Contact</h3>
-              <ul className="space-y-2 text-gray-400">
+              <h3 className="text-xl font-semibold text-white mb-4">Contact</h3>
+              <ul className="space-y-2 text-sm">
                 <li>Email: support@farmlink.com</li>
                 <li>Phone: +880 XXXX XXXX</li>
                 <li>
-                  <div className="flex gap-4 mt-4">
+                  <div className="flex gap-4 mt-4 text-sm">
                     <a href="#" className="hover:text-white">Facebook</a>
                     <a href="#" className="hover:text-white">Twitter</a>
                     <a href="#" className="hover:text-white">LinkedIn</a>
@@ -254,12 +280,11 @@ export default function Landing() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 FarmLink. All rights reserved.</p>
+          <div className="border-t border-gray-800 mt-8 pt-6 text-center text-sm text-gray-500">
+            &copy; 2024 FarmLink. All rights reserved.
           </div>
         </div>
       </footer>
     </div>
   )
 }
-

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collection, query, where, getDocs, addDoc, Timestamp } from 'firebase/firestore'
 import { useAuth } from '../hooks/useAuth'
@@ -8,59 +8,77 @@ import Button from '../components/Button'
 import Input from '../components/Input'
 import Navbar from '../components/Navbar'
 
+const INITIAL_PRODUCT = {
+  name: '',
+  quantity: '',
+  marketPrice: '',
+  unit: 'kg',
+  cropImages: []
+}
+
 export default function FarmerDashboard() {
   const { user, userData } = useAuth()
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
   const [showAddProduct, setShowAddProduct] = useState(false)
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    quantity: '',
-    marketPrice: '',
-    unit: 'kg',
-    cropImages: []
-  })
+  const [newProduct, setNewProduct] = useState(INITIAL_PRODUCT)
+  const [cropPreviews, setCropPreviews] = useState([])
 
-  // Handle crop image file selection from the file input
-  const handleCropImageUpload = (e) => {
-    const files = e?.target?.files ? Array.from(e.target.files) : []
-    // update using functional setState to avoid stale closure
-    setNewProduct(prev => ({ ...prev, cropImages: files }))
-  }
+  const loadProducts = useCallback(async () => {
+    if (!user) return
+    const q = query(collection(db, 'products'), where('farmerId', '==', user.uid))
+    const snapshot = await getDocs(q)
+    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+  }, [user])
 
   useEffect(() => {
     if (userData?.role === 'farmer') {
       if (!userData?.registrationPaid) {
         navigate('/farmer-payment')
-      } else if (!userData?.verified && !userData?.onboardingComplete) {
+        return
+      }
+      if (!userData?.verified && !userData?.onboardingComplete) {
         navigate('/onboarding')
+        return
       }
     }
     loadProducts()
-  }, [user, userData])
+  }, [userData, navigate, loadProducts])
 
-  const loadProducts = async () => {
-    if (!user) return
-    const q = query(collection(db, 'products'), where('farmerId', '==', user.uid))
-    const snapshot = await getDocs(q)
-    setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })))
+  useEffect(() => {
+    const urls = newProduct.cropImages.map(file => URL.createObjectURL(file))
+    setCropPreviews(urls)
+    return () => urls.forEach(url => URL.revokeObjectURL(url))
+  }, [newProduct.cropImages])
+
+  const handleCropImageUpload = (e) => {
+    const files = e?.target?.files ? Array.from(e.target.files) : []
+    setNewProduct(prev => ({ ...prev, cropImages: files }))
+  }
+
+  const handleFieldChange = (field) => (e) => {
+    const { value } = e.target
+    setNewProduct(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleRemoveImage = (idx) => {
+    setNewProduct(prev => ({
+      ...prev,
+      cropImages: prev.cropImages.filter((_, i) => i !== idx)
+    }))
   }
 
   const handleAddProduct = async (e) => {
     e.preventDefault()
     try {
-      const cropImageUrls = []
-      
-      // Upload crop images
-      for (const image of newProduct.cropImages) {
-        const url = await uploadToCloudinary(image, `products/${user.uid}`)
-        cropImageUrls.push(url)
-      }
+      const cropImageUrls = await Promise.all(
+        newProduct.cropImages.map(image => uploadToCloudinary(image, `products/${user.uid}`))
+      )
 
       await addDoc(collection(db, 'products'), {
-        name: newProduct.name,
-        quantity: parseFloat(newProduct.quantity),
-        marketPrice: parseFloat(newProduct.marketPrice),
+        name: newProduct.name.trim(),
+        quantity: parseFloat(newProduct.quantity) || 0,
+        marketPrice: parseFloat(newProduct.marketPrice) || 0,
         unit: newProduct.unit,
         cropImages: cropImageUrls,
         farmerId: user.uid,
@@ -69,7 +87,8 @@ export default function FarmerDashboard() {
         status: 'available',
         createdAt: Timestamp.now()
       })
-      setNewProduct({ name: '', quantity: '', marketPrice: '', unit: 'kg', cropImages: [] })
+
+      setNewProduct(INITIAL_PRODUCT)
       setShowAddProduct(false)
       loadProducts()
     } catch (err) {
@@ -80,7 +99,7 @@ export default function FarmerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-2">Welcome, {userData?.name || user?.email}</h2>
@@ -97,7 +116,7 @@ export default function FarmerDashboard() {
             <Button variant="outline" onClick={() => navigate('/orders')}>
               My Orders
             </Button>
-            <Button onClick={() => setShowAddProduct(!showAddProduct)}>
+            <Button onClick={() => setShowAddProduct(prev => !prev)}>
               {showAddProduct ? 'Cancel' : '+ Add Product'}
             </Button>
           </div>
@@ -110,23 +129,23 @@ export default function FarmerDashboard() {
               <Input
                 label="Product Name"
                 value={newProduct.name}
-                onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                onChange={handleFieldChange('name')}
                 required
               />
-              
+
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <Input
                   label="Quantity"
                   type="number"
                   value={newProduct.quantity}
-                  onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
+                  onChange={handleFieldChange('quantity')}
                   required
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
                   <select
                     value={newProduct.unit}
-                    onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
+                    onChange={handleFieldChange('unit')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="kg">kg</option>
@@ -140,7 +159,7 @@ export default function FarmerDashboard() {
                 label="Market Price (৳ per unit)"
                 type="number"
                 value={newProduct.marketPrice}
-                onChange={(e) => setNewProduct({ ...newProduct, marketPrice: e.target.value })}
+                onChange={handleFieldChange('marketPrice')}
                 required
               />
 
@@ -155,23 +174,20 @@ export default function FarmerDashboard() {
                   onChange={handleCropImageUpload}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 />
-                {newProduct.cropImages.length > 0 && (
+                {cropPreviews.length > 0 && (
                   <div className="mt-2">
-                    <p className="text-sm text-gray-600 mb-2">Selected {newProduct.cropImages.length} image(s):</p>
+                    <p className="text-sm text-gray-600 mb-2">Selected {cropPreviews.length} image(s):</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {newProduct.cropImages.map((img, idx) => (
-                        <div key={idx} className="relative">
-                          <img 
-                            src={URL.createObjectURL(img)} 
-                            alt={`Preview ${idx + 1}`} 
+                      {cropPreviews.map((src, idx) => (
+                        <div key={src} className="relative">
+                          <img
+                            src={src}
+                            alt={`Preview ${idx + 1}`}
                             className="w-full h-24 object-cover rounded-lg border"
                           />
                           <button
                             type="button"
-                            onClick={() => {
-                              const newImages = newProduct.cropImages.filter((_, i) => i !== idx)
-                              setNewProduct({ ...newProduct, cropImages: newImages })
-                            }}
+                            onClick={() => handleRemoveImage(idx)}
                             className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
                           >
                             ×
@@ -205,9 +221,13 @@ export default function FarmerDashboard() {
                       Listed: {new Date(product.listedAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-sm ${
-                    product.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-sm ${
+                      product.status === 'available'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}
+                  >
                     {product.status}
                   </span>
                 </div>
@@ -219,4 +239,3 @@ export default function FarmerDashboard() {
     </div>
   )
 }
-

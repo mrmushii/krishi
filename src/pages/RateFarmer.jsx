@@ -19,35 +19,39 @@ export default function RateFarmer() {
   const [review, setReview] = useState('')
 
   useEffect(() => {
-    if (orderId) {
-      loadOrder()
-      checkRatingStatus()
-    }
-  }, [orderId, user])
+    if (!orderId || !user?.uid) return
+    let active = true
 
-  const loadOrder = async () => {
-    try {
-      const orderDoc = await getDoc(doc(db, 'orders', orderId))
-      if (orderDoc.exists()) {
-        setOrder({ id: orderDoc.id, ...orderDoc.data() })
+    ;(async () => {
+      setLoading(true)
+      try {
+        const [orderSnap, rated] = await Promise.all([
+          getDoc(doc(db, 'orders', orderId)),
+          hasRatedOrder(user.uid, orderId)
+        ])
+
+        if (!active) return
+        if (orderSnap.exists()) {
+          setOrder({ id: orderSnap.id, ...orderSnap.data() })
+        } else {
+          setOrder(null)
+        }
+        setAlreadyRated(rated)
+      } catch (err) {
+        console.error('Error loading rating data:', err)
+      } finally {
+        if (active) setLoading(false)
       }
-    } catch (err) {
-      console.error('Error loading order:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+    })()
 
-  const checkRatingStatus = async () => {
-    if (user && orderId) {
-      const rated = await hasRatedOrder(user.uid, orderId)
-      setAlreadyRated(rated)
+    return () => {
+      active = false
     }
-  }
+  }, [orderId, user?.uid])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!order) return
+    if (!order || !user?.uid) return
 
     setSubmitting(true)
     try {
@@ -56,9 +60,9 @@ export default function RateFarmer() {
         farmerName: order.farmerName,
         buyerId: user.uid,
         buyerName: userData?.name || user.email,
-        orderId: orderId,
-        rating: rating,
-        review: review,
+        orderId,
+        rating,
+        review,
         productName: order.productName
       })
 
@@ -103,7 +107,6 @@ export default function RateFarmer() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6">
           <h1 className="text-2xl font-bold mb-2">Rate Farmer</h1>
@@ -117,7 +120,7 @@ export default function RateFarmer() {
                 Rating <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map(star => (
+                {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
                     type="button"
@@ -160,4 +163,3 @@ export default function RateFarmer() {
     </div>
   )
 }
-
