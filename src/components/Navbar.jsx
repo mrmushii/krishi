@@ -18,7 +18,7 @@ const roleLinks = {
     { path: '/ledger', label: 'Ledger' }
   ],
   agent: [
-    { path: '/', label: 'Dashboard', exact: true },
+    { path: '/dashboard', label: 'Dashboard', exact: true },
     { path: '/agent/verification', label: 'Verifications' }
   ]
 }

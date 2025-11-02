@@ -120,7 +120,8 @@ export default function Landing() {
                 <div className="mt-10 flex flex-wrap justify-center gap-3 lg:justify-start">
                   <Button
                     onClick={() => navigate('/signup')}
-                    className="min-w-[160px] bg-white text-emerald-700 font-semibold  hover:bg-emerald-100 hover:text-emerald-800"
+                    variant="outline"
+                    className="min-w-[160px] bg-emerald-700 text-white font-semibold  hover:emerald-400 hover:border-white hover:border hover:text-emerald-800"
                   >
                     Join as Farmer
                   </Button>
