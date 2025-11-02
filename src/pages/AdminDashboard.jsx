@@ -15,11 +15,11 @@ const initialStats = {
   orders: 0,
   completedOrders: 0,
   pendingVerifications: 0,
-  pendingAgents: 0
+  pendingAgents: 0,
 }
 
 const percent = (part, total) => (total ? (part / total) * 100 : 0)
-const formatDate = value => {
+const formatDate = (value) => {
   if (!value) return 'N/A'
   if (value instanceof Date) return value.toLocaleDateString()
   if (value?.seconds) return new Date(value.seconds * 1000).toLocaleDateString()
@@ -27,24 +27,24 @@ const formatDate = value => {
 }
 
 export default function AdminDashboard() {
-  const { userData } = useAuth()
+  const { userData, loading } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState(initialStats)
   const [pendingAgents, setPendingAgents] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [loadingData, setLoadingData] = useState(true)
 
   const loadDashboardData = useCallback(async () => {
-    setLoading(true)
+    setLoadingData(true)
     try {
       const [usersSnap, productsSnap, ordersSnap] = await Promise.all([
         getDocs(collection(db, 'users')),
         getDocs(collection(db, 'products')),
-        getDocs(collection(db, 'orders'))
+        getDocs(collection(db, 'orders')),
       ])
 
-      const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      const users = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
       const productsCount = productsSnap.size
-      const orders = ordersSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      const orders = ordersSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
 
       const userTotals = users.reduce(
         (acc, user) => {
@@ -55,7 +55,8 @@ export default function AdminDashboard() {
             acc.agents += 1
             if (!user.verified || user.status === 'pending_verification') acc.pendingAgents.push(user)
           }
-          if (user.status === 'pending_verification' && user.role !== 'admin') acc.pendingVerifications += 1
+          if (user.status === 'pending_verification' && user.role !== 'admin')
+            acc.pendingVerifications += 1
           return acc
         },
         { ...initialStats, pendingAgents: [] }
@@ -75,24 +76,25 @@ export default function AdminDashboard() {
         orders: orders.length,
         completedOrders,
         pendingVerifications: userTotals.pendingVerifications,
-        pendingAgents: userTotals.pendingAgents.length
+        pendingAgents: userTotals.pendingAgents.length,
       })
       setPendingAgents(userTotals.pendingAgents)
     } catch (err) {
       console.error('Error loading dashboard:', err)
     } finally {
-      setLoading(false)
+      setLoadingData(false)
     }
   }, [])
 
   useEffect(() => {
-    if (userData === undefined) return
+    if (loading) return // Wait for auth to finish
+    if (!userData) return // No user data yet
     if (userData?.role !== 'admin') {
       navigate('/')
       return
     }
     loadDashboardData()
-  }, [userData, navigate, loadDashboardData])
+  }, [userData, loading, navigate, loadDashboardData])
 
   const handleApproveAgent = async (agentId, action) => {
     try {
@@ -100,7 +102,7 @@ export default function AdminDashboard() {
         verified: action === 'approve',
         status: action === 'approve' ? 'active' : 'rejected',
         verifiedBy: 'Admin',
-        verifiedAt: Timestamp.now()
+        verifiedAt: Timestamp.now(),
       })
       alert(`Agent ${action === 'approve' ? 'approved' : 'rejected'} successfully!`)
       loadDashboardData()
@@ -109,12 +111,13 @@ export default function AdminDashboard() {
     }
   }
 
-  if (loading) {
+  if (loading || loadingData || !userData) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-farmlink-orange mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading dashboard...</p>
         </div>
       </div>
     )
@@ -133,162 +136,56 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
 
+        {/* Stats Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Users</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalUsers}</p>
+          {[
+            { label: 'Total Users', value: stats.totalUsers, icon: '👥', color: 'text-gray-900' },
+            { label: 'Farmers', value: stats.farmers, icon: '🌾', color: 'text-green-600' },
+            { label: 'Buyers', value: stats.buyers, icon: '🛒', color: 'text-blue-600' },
+            { label: 'Agents', value: stats.agents, icon: '👨‍💼', color: 'text-purple-600' },
+            { label: 'Total Products', value: stats.products, icon: '📦', color: 'text-farmlink-orange' },
+            { label: 'Total Orders', value: stats.orders, icon: '📋', color: 'text-indigo-600' },
+            { label: 'Completed Orders', value: stats.completedOrders, icon: '✅', color: 'text-green-600' },
+            { label: 'Pending Verifications', value: stats.pendingVerifications, icon: '⏳', color: 'text-yellow-600' },
+          ].map(({ label, value, icon, color }) => (
+            <div key={label} className="bg-white rounded-lg shadow-md p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">{label}</p>
+                  <p className={`text-3xl font-bold ${color}`}>{value}</p>
+                </div>
+                <div className="text-4xl">{icon}</div>
               </div>
-              <div className="text-4xl">👥</div>
             </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Farmers</p>
-                <p className="text-3xl font-bold text-green-600">{stats.farmers}</p>
-              </div>
-              <div className="text-4xl">🌾</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Buyers</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.buyers}</p>
-              </div>
-              <div className="text-4xl">🛒</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Agents</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.agents}</p>
-              </div>
-              <div className="text-4xl">👨‍💼</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Products</p>
-                <p className="text-3xl font-bold text-farmlink-orange">{stats.products}</p>
-              </div>
-              <div className="text-4xl">📦</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Total Orders</p>
-                <p className="text-3xl font-bold text-indigo-600">{stats.orders}</p>
-              </div>
-              <div className="text-4xl">📋</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Completed Orders</p>
-                <p className="text-3xl font-bold text-green-600">{stats.completedOrders}</p>
-              </div>
-              <div className="text-4xl">✅</div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Pending Verifications</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pendingVerifications}</p>
-              </div>
-              <div className="text-4xl">⏳</div>
-            </div>
-          </div>
+          ))}
         </div>
 
+        {/* Distribution & Orders */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* User Distribution */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">User Distribution</h2>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Farmers</span>
-                  <span className="text-sm font-semibold">
-                    {stats.farmers} ({Math.round(farmerPercent)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: `${farmerPercent}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Buyers</span>
-                  <span className="text-sm font-semibold">
-                    {stats.buyers} ({Math.round(buyerPercent)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${buyerPercent}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Agents</span>
-                  <span className="text-sm font-semibold">
-                    {stats.agents} ({Math.round(agentPercent)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: `${agentPercent}%` }}></div>
-                </div>
-              </div>
-            </div>
+            <Progress label="Farmers" value={stats.farmers} percent={farmerPercent} color="bg-green-600" />
+            <Progress label="Buyers" value={stats.buyers} percent={buyerPercent} color="bg-blue-600" />
+            <Progress label="Agents" value={stats.agents} percent={agentPercent} color="bg-purple-600" />
           </div>
 
+          {/* Orders */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-4">Order Statistics</h2>
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Completed Orders</span>
-                  <span className="text-sm font-semibold">
-                    {stats.completedOrders} ({Math.round(completedPercent)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: `${completedPercent}%` }}></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-600">Pending Orders</span>
-                  <span className="text-sm font-semibold">
-                    {stats.orders - stats.completedOrders}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-yellow-600 h-2 rounded-full" style={{ width: `${pendingPercent}%` }}></div>
-                </div>
-              </div>
-            </div>
+            <Progress label="Completed Orders" value={stats.completedOrders} percent={completedPercent} color="bg-green-600" />
+            <Progress label="Pending Orders" value={stats.orders - stats.completedOrders} percent={pendingPercent} color="bg-yellow-600" />
           </div>
         </div>
 
+        {/* Pending Agents */}
         {pendingAgents.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Pending Agent Approvals ({pendingAgents.length})</h2>
+            <h2 className="text-xl font-semibold mb-4">
+              Pending Agent Approvals ({pendingAgents.length})
+            </h2>
             <div className="space-y-4">
-              {pendingAgents.map(agent => (
+              {pendingAgents.map((agent) => (
                 <div key={agent.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
                     <h3 className="font-semibold">{agent.name || agent.email}</h3>
@@ -305,6 +202,22 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function Progress({ label, value, percent, color }) {
+  return (
+    <div className="mb-3">
+      <div className="flex justify-between mb-1">
+        <span className="text-sm text-gray-600">{label}</span>
+        <span className="text-sm font-semibold">
+          {value} ({Math.round(percent)}%)
+        </span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className={`${color} h-2 rounded-full`} style={{ width: `${percent}%` }}></div>
       </div>
     </div>
   )
