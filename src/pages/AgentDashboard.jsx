@@ -3,9 +3,11 @@ import { collection, getDocs, addDoc, updateDoc, doc, query, orderBy, Timestamp 
 import { useNavigate } from 'react-router-dom'
 import { db } from '../config/firebase'
 import { useAuth } from '../hooks/useAuth'
+import { subscribeToActiveTransports } from '../services/transportService'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import Navbar from '../components/Navbar'
+import TransportMap from '../components/TransportMap'
 
 const STATUS_STYLES = {
   delivered: 'bg-green-100 text-green-800',
@@ -29,6 +31,9 @@ export default function AgentDashboard() {
   const [showAnnouncement, setShowAnnouncement] = useState(false)
   const [announcementText, setAnnouncementText] = useState('')
   const [targetRole, setTargetRole] = useState('all')
+  const [activeTransports, setActiveTransports] = useState([])
+  const [showTrackMap, setShowTrackMap] = useState(false)
+  const [currentLocation, setCurrentLocation] = useState(null)
 
   const loadOrders = useCallback(async () => {
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'))
@@ -38,6 +43,32 @@ export default function AgentDashboard() {
 
   useEffect(() => {
     loadOrders()
+
+    // Subscribe to active transports
+    const unsubscribe = subscribeToActiveTransports((transports) => {
+      setActiveTransports(transports)
+    })
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          })
+        }
+      )
+    }
+
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(() => {
+      loadOrders()
+    }, 10000)
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+      clearInterval(interval)
+    }
   }, [loadOrders])
 
   const updateOrderStatus = useCallback(
@@ -109,14 +140,28 @@ export default function AgentDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Welcome, {userData?.name || user?.email}</h2>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={() => navigate('/agent/verification')}>Verification Dashboard</Button>
             <Button onClick={() => setShowAnnouncement(true)}>Send Announcement</Button>
+            <Button onClick={() => setShowTrackMap(!showTrackMap)}>
+              {showTrackMap ? 'Hide' : 'Track'} Transport Map
+            </Button>
             <Button variant="outline" onClick={exportLedger}>
               Export Ledger (CSV)
             </Button>
           </div>
         </div>
+
+        {showTrackMap && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">Live Transport Tracking</h3>
+            <TransportMap
+              transports={activeTransports}
+              center={currentLocation || { lat: 23.8103, lng: 90.4125 }}
+              height="500px"
+            />
+          </div>
+        )}
 
         {showAnnouncement && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">

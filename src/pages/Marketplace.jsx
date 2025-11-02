@@ -89,8 +89,35 @@ export default function Marketplace() {
           ) : (
             filteredProducts.map(product => {
               const priceInfo = calculateFreshPrice(product.marketPrice, product.listedAt)
+              const availableQty = product.availableQuantity !== undefined ? product.availableQuantity : product.quantity
+              const aiRating = product.aiAnalysis?.rating
+              const isRecommended = product.aiAnalysis?.is_recommended
+              
               return (
                 <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow">
+                  {/* Product Image */}
+                  {product.cropImages && product.cropImages.length > 0 && (
+                    <div className="relative h-48 w-full overflow-hidden bg-gray-200">
+                      <img
+                        src={product.cropImages[0]}
+                        alt={product.name}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        onClick={() => navigate(`/product/${product.id}`)}
+                      />
+                      {aiRating && (
+                        <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                          <span>⭐</span>
+                          <span>{aiRating}/10</span>
+                        </div>
+                      )}
+                      {isRecommended && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                          ✅ AI Verified
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <div className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="text-xl font-semibold">{product.name}</h3>
@@ -104,9 +131,19 @@ export default function Marketplace() {
                     </div>
 
                     <p className="text-gray-600 text-sm mb-2">By: {product.farmerName}</p>
-                    <p className="text-gray-600 mb-2">
-                      Available: {product.quantity} {product.unit}
+                    <p className={`text-sm mb-2 ${availableQty <= 0 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                      Available: {availableQty} {product.unit}
+                      {availableQty <= 0 && <span className="ml-2">(Out of Stock)</span>}
                     </p>
+                    
+                    {product.aiAnalysis && (
+                      <div className="mb-2">
+                        <p className="text-xs text-gray-500">
+                          AI Quality: {product.aiAnalysis.condition} 
+                          {product.aiAnalysis.rating && ` (${product.aiAnalysis.rating}/10)`}
+                        </p>
+                      </div>
+                    )}
 
                     <div className="mb-2">
                       {priceInfo.isFresh ? (
@@ -131,8 +168,9 @@ export default function Marketplace() {
                     <Button
                       onClick={() => navigate(`/product/${product.id}`)}
                       className="w-full mt-4"
+                      disabled={availableQty <= 0}
                     >
-                      View Details
+                      {availableQty <= 0 ? 'Out of Stock' : 'View Details'}
                     </Button>
                   </div>
                 </div>

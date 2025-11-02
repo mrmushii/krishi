@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, query, where, orderBy, updateDoc, doc, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, getDocs, query, where, orderBy, updateDoc, doc, Timestamp, onSnapshot } from 'firebase/firestore'
 import { db } from '../config/firebase'
 
 /**
@@ -168,5 +168,51 @@ export const notifyOrderCancellation = async (order, reason) => {
     targetRole: 'buyer',
     orderId: order.id
   })
+}
+
+/**
+ * Subscribe to real-time notifications for a user
+ */
+export const subscribeToNotifications = (userId, callback) => {
+  const q = query(
+    collection(db, 'notifications'),
+    where('targetUserId', '==', userId),
+    orderBy('createdAt', 'desc')
+  )
+
+  return onSnapshot(q, (snapshot) => {
+    const notifications = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    callback(notifications)
+  })
+}
+
+/**
+ * Subscribe to role-based notifications
+ */
+export const subscribeToRoleNotifications = (role, callback) => {
+  const q = query(
+    collection(db, 'notifications'),
+    where('targetRole', '==', role),
+    orderBy('createdAt', 'desc')
+  )
+
+  return onSnapshot(q, (snapshot) => {
+    const notifications = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    callback(notifications)
+  })
+}
+
+/**
+ * Get unread notification count
+ */
+export const getUnreadCount = async (userId) => {
+  const notifications = await getUserNotifications(userId, true)
+  return notifications.length
 }
 

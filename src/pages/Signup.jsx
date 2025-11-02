@@ -26,6 +26,7 @@ export default function Signup() {
       { value: 'buyer', label: 'Buyer' },
       { value: 'farmer', label: 'Farmer' },
       { value: 'agent', label: 'Agent' },
+      { value: 'driver', label: 'Driver' },
       { value: 'admin', label: 'Admin' }
     ],
     []
@@ -49,7 +50,7 @@ export default function Signup() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-deshbazar-primary mb-8">deshBazar</h1>
+        <h1 className="text-3xl font-bold text-center text-deshbazar-primary mb-8">FarmLink</h1>
         <h2 className="text-2xl font-semibold text-center mb-6">Sign Up</h2>
 
         <form onSubmit={handleSubmit}>

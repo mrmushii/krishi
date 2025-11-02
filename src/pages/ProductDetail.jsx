@@ -8,7 +8,8 @@ import {
   query,
   where,
   orderBy,
-  Timestamp
+  Timestamp,
+  updateDoc
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { useAuth } from '../hooks/useAuth'
@@ -163,47 +164,48 @@ export default function ProductDetail() {
     }
   }
 
-  const placeOrder = async () => {
+  const handleBuyNow = async () => {
     if (!user) {
       alert('Please sign in to place orders')
       return
     }
+    
     const quantity = parseFloat(orderData.quantity)
     if (!quantity || quantity <= 0) {
       alert('Please enter a valid quantity')
       return
     }
-    if (!priceInfo) return
+    
+    // Inventory validation
+    const availableQty = product.availableQuantity !== undefined ? product.availableQuantity : product.quantity
+    if (quantity > availableQty) {
+      alert(`Only ${availableQty} ${product.unit} available. You requested ${quantity} ${product.unit}.`)
+      return
+    }
+    
+    if (availableQty <= 0) {
+      alert('This product is out of stock')
+      return
+    }
 
     try {
-      const totalPrice = priceInfo.price * quantity
-
-      await addDoc(collection(db, 'orders'), {
+      // Add item to cart with the specified quantity
+      await addToCart({
+        userId: user.uid,
         productId: product.id,
         productName: product.name,
-        farmerId: product.farmerId,
-        farmerName: product.farmerName,
-        buyerId: user.uid,
-        buyerName: userData?.name || user.email,
-        quantity,
-        unit: product.unit,
-        unitPrice: priceInfo.price,
-        totalPrice,
-        marketPrice: product.marketPrice,
-        listedAt: product.listedAt,
-        status: 'pending',
-        coldStorage: orderData.coldStorage,
-        subscriptionPlan: orderData.subscriptionPlan || null,
-        paymentHeld: true,
-        createdAt: Timestamp.now()
+        quantity: quantity,
+        // Store additional order data in cart for checkout
+        coldStorage: orderData.coldStorage || false,
+        subscriptionPlan: orderData.subscriptionPlan || null
       })
 
-      alert('Order placed successfully! Payment held in escrow until delivery.')
+      // Close modal and redirect to checkout
       setShowOrderModal(false)
       setOrderData({ quantity: '', coldStorage: false, subscriptionPlan: '' })
-      navigate('/')
+      navigate('/checkout')
     } catch (err) {
-      alert('Error placing order: ' + err.message)
+      alert('Error adding to cart: ' + err.message)
     }
   }
 
@@ -224,6 +226,55 @@ export default function ProductDetail() {
           ← Back to Marketplace
         </Button>
         <div className="bg-white rounded-lg shadow p-6 mb-6">
+          {/* AI Analysis Display */}
+          {product.aiAnalysis && product.aiAnalysis.success && (
+            <div className={`mb-6 p-4 rounded-lg border-2 ${
+              product.aiAnalysis.is_recommended 
+                ? 'bg-green-50 border-green-200' 
+                : 'bg-yellow-50 border-yellow-200'
+            }`}>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  🤖 AI Quality Analysis
+                  {product.aiAnalysis.is_recommended && (
+                    <span className="text-xs bg-green-500 text-white px-2 py-1 rounded">Verified</span>
+                  )}
+                </h3>
+                <div className={`px-4 py-2 rounded-full ${
+                  product.aiAnalysis.rating >= 8 ? 'bg-green-100 text-green-600' :
+                  product.aiAnalysis.rating >= 6 ? 'bg-yellow-100 text-yellow-600' :
+                  product.aiAnalysis.rating >= 4 ? 'bg-orange-100 text-orange-600' :
+                  'bg-red-100 text-red-600'
+                } font-bold text-xl`}>
+                  {product.aiAnalysis.rating}/10
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Condition: </span>
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    product.aiAnalysis.condition === 'fresh' ? 'bg-green-100 text-green-800' :
+                    product.aiAnalysis.condition === 'good' ? 'bg-blue-100 text-blue-800' :
+                    product.aiAnalysis.condition === 'average' ? 'bg-yellow-100 text-yellow-800' :
+                    product.aiAnalysis.condition === 'poor' ? 'bg-orange-100 text-orange-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {product.aiAnalysis.condition?.toUpperCase() || 'UNKNOWN'}
+                  </span>
+                </div>
+                {product.aiAnalysis.defects && product.aiAnalysis.defects.length > 0 && (
+                  <div>
+                    <span className="font-medium">Defects: </span>
+                    <span className="text-red-600">{product.aiAnalysis.defects.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+              {product.aiAnalysis.recommendation && (
+                <p className="mt-2 text-sm text-gray-700">{product.aiAnalysis.recommendation}</p>
+              )}
+            </div>
+          )}
+
           {product.cropImages?.length > 0 && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3">Crop Quality Images</h3>
@@ -276,8 +327,11 @@ export default function ProductDetail() {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-gray-500">Available Quantity</p>
-              <p className="text-lg font-semibold">
-                {product.quantity} {product.unit}
+              <p className={`text-lg font-semibold ${(product.availableQuantity !== undefined ? product.availableQuantity : product.quantity) <= 0 ? 'text-red-600' : ''}`}>
+                {product.availableQuantity !== undefined ? product.availableQuantity : product.quantity} {product.unit}
+                {(product.availableQuantity !== undefined ? product.availableQuantity : product.quantity) <= 0 && (
+                  <span className="ml-2 text-sm text-red-600">(Out of Stock)</span>
+                )}
               </p>
             </div>
             <div>
@@ -290,8 +344,12 @@ export default function ProductDetail() {
 
           {userData?.role === 'buyer' && (
             <div className="flex gap-2">
-              <Button onClick={() => setShowOrderModal(true)} className="flex-1">
-                Buy Now
+              <Button 
+                onClick={() => setShowOrderModal(true)} 
+                className="flex-1"
+                disabled={(product.availableQuantity !== undefined ? product.availableQuantity : product.quantity) <= 0}
+              >
+                {(product.availableQuantity !== undefined ? product.availableQuantity : product.quantity) <= 0 ? 'Out of Stock' : 'Buy Now'}
               </Button>
               <AddToCartButton productId={product.id} product={product} />
               <AddToWishlistButton productId={product.id} product={product} />
@@ -302,15 +360,32 @@ export default function ProductDetail() {
         {showOrderModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-semibold mb-4">Place Order</h2>
+              <h2 className="text-xl font-semibold mb-4">Buy Now - Add to Checkout</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Select quantity and options, then proceed to checkout to complete your purchase.
+              </p>
 
               <Input
                 label={`Quantity (${product.unit})`}
                 type="number"
+                min="1"
+                max={product.availableQuantity !== undefined ? product.availableQuantity : product.quantity}
                 value={orderData.quantity}
-                onChange={e => setOrderData({ ...orderData, quantity: e.target.value })}
+                onChange={e => {
+                  const value = parseFloat(e.target.value)
+                  const maxQty = product.availableQuantity !== undefined ? product.availableQuantity : product.quantity
+                  if (value > maxQty) {
+                    alert(`Maximum available quantity is ${maxQty} ${product.unit}`)
+                    setOrderData({ ...orderData, quantity: maxQty.toString() })
+                  } else {
+                    setOrderData({ ...orderData, quantity: e.target.value })
+                  }
+                }}
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum: {product.availableQuantity !== undefined ? product.availableQuantity : product.quantity} {product.unit}
+              </p>
 
               <div className="mb-4">
                 <label className="flex items-center">
@@ -359,8 +434,8 @@ export default function ProductDetail() {
               )}
 
               <div className="flex gap-2">
-                <Button onClick={placeOrder} className="flex-1">
-                  Confirm Order
+                <Button onClick={handleBuyNow} className="flex-1">
+                  Proceed to Checkout
                 </Button>
                 <Button
                   variant="secondary"

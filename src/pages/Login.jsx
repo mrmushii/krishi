@@ -34,7 +34,7 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-deshbazar-primary mb-8">deshBazar</h1>
+        <a href="/landing"><h1 className="text-3xl font-bold text-center text-deshbazar-primary mb-8">FarmLink</h1></a>
         <h2 className="text-2xl font-semibold text-center mb-6">Sign In</h2>
 
         <form onSubmit={handleSubmit}>

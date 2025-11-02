@@ -1,81 +1,81 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { getUserNotifications, getRoleNotifications, markAsRead, markAllAsRead } from '../services/notificationService'
+import {
+  getUserNotifications,
+  getRoleNotifications,
+  markAsRead,
+  markAllAsRead,
+} from '../services/notificationService'
 import Button from './Button'
+
+const MAX_ITEMS = 10
+const REFRESH_MS = 30_000
 
 export default function NotificationBell() {
   const { user, userData } = useAuth()
   const [notifications, setNotifications] = useState([])
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [unreadCount, setUnreadCount] = useState(0)
+
+  const unreadCount = useMemo(
+    () => notifications.reduce((count, notif) => (notif.read ? count : count + 1), 0),
+    [notifications]
+  )
+
+  const loadNotifications = useCallback(async () => {
+    if (!user?.uid || !userData?.role) return
+    try {
+      const [userNotifs, roleNotifs] = await Promise.all([
+        getUserNotifications(user.uid),
+        getRoleNotifications(userData.role, user.uid),
+      ])
+
+      const deduped = Array.from(
+        new Map([...userNotifs, ...roleNotifs].map(notif => [notif.id, notif]))
+      )
+        .sort((a, b) => {
+          const aTime = a.createdAt?.toMillis?.() ?? 0
+          const bTime = b.createdAt?.toMillis?.() ?? 0
+          return bTime - aTime
+        })
+        .slice(0, MAX_ITEMS)
+
+      setNotifications(deduped)
+    } catch (error) {
+      console.error('Error loading notifications:', error)
+    }
+  }, [user?.uid, userData?.role])
 
   useEffect(() => {
-    if (user && userData) {
-      loadNotifications()
-      // Refresh every 30 seconds
-      const interval = setInterval(loadNotifications, 30000)
-      return () => clearInterval(interval)
-    }
-  }, [user, userData])
+    loadNotifications()
+    if (!user?.uid) return
+    const interval = setInterval(loadNotifications, REFRESH_MS)
+    return () => clearInterval(interval)
+  }, [loadNotifications, user?.uid])
 
-  const loadNotifications = async () => {
-    if (!user || !userData) return
-    
-    try {
-      // Get user-specific notifications
-      let userNotifs = []
-      try {
-        userNotifs = await getUserNotifications(user.uid)
-      } catch (err) {
-        console.log('Could not load user notifications:', err.message)
-      }
-      
-      // Get role-specific notifications
-      let roleNotifs = []
-      try {
-        roleNotifs = await getRoleNotifications(userData.role, user.uid)
-      } catch (err) {
-        console.log('Could not load role notifications:', err.message)
-      }
-      
-      // Combine and deduplicate
-      const allNotifs = [...userNotifs, ...roleNotifs]
-      const uniqueNotifs = allNotifs.filter((notif, index, self) =>
-        index === self.findIndex(n => n.id === notif.id)
-      )
-
-      setNotifications(uniqueNotifs.slice(0, 10)) // Show latest 10
-      setUnreadCount(uniqueNotifs.filter(n => !n.read).length)
-    } catch (err) {
-      console.error('Error loading notifications:', err)
-      // Set empty state on error
-      setNotifications([])
-      setUnreadCount(0)
-    }
-  }
-
-  const handleMarkAsRead = async (notificationId) => {
+  const handleMarkAsRead = async notificationId => {
     try {
       await markAsRead(notificationId)
-      loadNotifications()
-    } catch (err) {
-      console.error('Error marking as read:', err)
+      setNotifications(prev =>
+        prev.map(notif => (notif.id === notificationId ? { ...notif, read: true } : notif))
+      )
+    } catch (error) {
+      console.error('Error marking as read:', error)
     }
   }
 
   const handleMarkAllAsRead = async () => {
+    if (!user?.uid) return
     try {
       await markAllAsRead(user.uid)
-      loadNotifications()
-    } catch (err) {
-      console.error('Error marking all as read:', err)
+      setNotifications(prev => prev.map(notif => ({ ...notif, read: true })))
+    } catch (error) {
+      console.error('Error marking all as read:', error)
     }
   }
 
   return (
     <div className="relative">
       <button
-        onClick={() => setShowDropdown(!showDropdown)}
+        onClick={() => setNotifications(prev => prev)}
         className="relative p-2 text-gray-300 hover:text-white focus:outline-none"
       >
         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
@@ -88,7 +88,7 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {showDropdown && (
+      {Boolean(notifications.length) && (
         <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
           <div className="p-4 border-b flex justify-between items-center">
             <h3 className="font-semibold text-gray-900">Notifications</h3>
@@ -119,12 +119,10 @@ export default function NotificationBell() {
                       <p className="font-semibold text-sm text-gray-900">{notif.title}</p>
                       <p className="text-sm text-gray-600 mt-1">{notif.message}</p>
                       <p className="text-xs text-gray-400 mt-1">
-                        {notif.createdAt?.toDate().toLocaleString()}
+                        {notif.createdAt?.toDate?.().toLocaleString() ?? ''}
                       </p>
                     </div>
-                    {!notif.read && (
-                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-1"></div>
-                    )}
+                    {!notif.read && <div className="w-2 h-2 bg-blue-600 rounded-full mt-1" />}
                   </div>
                 </div>
               ))
@@ -135,4 +133,3 @@ export default function NotificationBell() {
     </div>
   )
 }
-

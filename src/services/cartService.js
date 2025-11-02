@@ -5,6 +5,9 @@ import { db } from '../config/firebase'
  * Add item to cart
  */
 export const addToCart = async (cartItem) => {
+  // Validate inventory (optional - can check product availability)
+  // Note: Full validation should happen at checkout
+  
   // Check if item already in cart
   const existingQuery = query(
     collection(db, 'cart'),
@@ -16,8 +19,11 @@ export const addToCart = async (cartItem) => {
   if (!existing.empty) {
     // Update quantity
     const cartDoc = existing.docs[0]
+    const currentQty = cartDoc.data().quantity || 0
+    const newQty = currentQty + (cartItem.quantity || 1)
+    
     await updateDoc(doc(db, 'cart', cartDoc.id), {
-      quantity: (cartDoc.data().quantity || 0) + (cartItem.quantity || 1),
+      quantity: newQty,
       updatedAt: Timestamp.now()
     })
     return cartDoc.id
@@ -25,6 +31,7 @@ export const addToCart = async (cartItem) => {
     // Add new item
     const docRef = await addDoc(collection(db, 'cart'), {
       ...cartItem,
+      quantity: cartItem.quantity || 1,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
     })
