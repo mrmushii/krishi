@@ -28,6 +28,7 @@ const roleHome = {
   farmer: '/farmer',
   buyer: '/buyer',
   agent: '/agent',
+  admin: '/admin',
 }
 
 function App() {
@@ -35,12 +36,13 @@ function App() {
 
   if (loading) return <Loading />
 
-  const homePath = user ? roleHome[userData?.role] ?? '/agent' : '/login'
+  const homePath = user ? roleHome[userData?.role] ?? '/login' : '/login'
 
   const restrictedRoutes = [
     { path: '/farmer', element: <FarmerDashboard />, canAccess: () => userData?.role === 'farmer' },
     { path: '/buyer', element: <BuyerDashboard />, canAccess: () => userData?.role === 'buyer' },
     { path: '/agent', element: <AgentDashboard />, canAccess: () => userData?.role === 'agent' },
+    { path: '/admin', element: <AdminDashboard />, canAccess: () => userData?.role === 'admin' },
     {
       path: '/farmer-payment',
       element: <FarmerPayment />,
@@ -75,6 +77,7 @@ function App() {
     { path: '/ledger', element: <BuyerLedger /> },
     { path: '/community', element: <Community /> },
     { path: '/community/question/:id', element: <QuestionDetail /> },
+    { path: '/notifications', element: <Notifications /> },
   ]
 
   return (

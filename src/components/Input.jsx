@@ -15,13 +15,20 @@ const Input = memo(
     },
     ref
   ) {
-    const borderClass = error ? 'border-red-500' : 'border-gray-300'
-    const combinedClass = `w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-farmlink-orange ${borderClass} ${className}`
+    // dynamic border based on error
+    const borderClass = error ? 'border-red-500 focus:ring-red-500' : 'border-emerald-200 focus:ring-emerald-400'
+    const combinedClass = `
+      w-full px-3 py-2 border rounded-lg 
+      bg-white text-slate-900 placeholder-slate-400
+      focus:outline-none focus:ring-2 
+      transition-colors duration-200
+      ${borderClass} ${className}
+    `
 
     return (
       <div className="mb-4">
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
             {label}
             {required && <span className="text-red-500">*</span>}
           </label>
